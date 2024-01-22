@@ -1147,12 +1147,9 @@ class EllipticCurvePoint_field(SchemeMorphism_point_abelian_variety_field):
         m = Integer(m)
         # Check for trivial cases of m = 1, -1 and 0.
         if m == 1 or m == -1:
-            return [self]
+            return [m*self]
         if m == 0:
-            if self == 0:  # then every point Q is a solution, but...
-                return [self]
-            else:
-                return []
+            raise ZeroDivisionError
 
         # ans will contain the list of division points.
         ans = []
