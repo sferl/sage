@@ -1,5 +1,42 @@
+r"""
+Products of elliptic curves over a general ring
+
+Given `n` elliptic curves `E_1, \dots, E_n` over `R`,
+their product `E_1 \times \dots \times E_n` is a principally polarized
+abelian variety of dimension `n`. #TODO better docstring?
+
+This module defines a parent class :class:`EllipticProduct` to provide support
+for such products, and an element class :class:`EllipticProductPoint` to
+represent points on these products, of the form
+`(P_1, \dots, P_n) \in E_1 \times \dots \times E_n`.
+
+EXAMPLES::
+
+    sage: Fp2, i = GF(419**2, name='i', modulus=var('x')**2 + 1).objgen()
+    sage: E0, E1 = EllipticCurve(Fp2, [1,0]), EllipticCurve(Fp2, [3,4])
+    sage: E0E1 = EllipticProduct(E0, E1); E0E1
+    Product of elliptic curves: (Elliptic Curve defined by y^2 = x^3 + x over Finite Field in i of size 419^2, Elliptic Curve defined by y^2 = x^3 + 3*x + 4 over Finite Field in i of size 419^2)
+    sage: P0, P1 = E0.lift_x(-1), E1([5, 12])
+    sage: P0P1 = E0E1(P0, P1)
+    sage: all(P in E for P, E in zip(P0P1, E0E1.factors()))
+    True
+
+.. TODO::
+
+    Implement isogenies between products of elliptic curves:: 
+
+        sage: P0, Q0 = E0.torsion_basis(4)
+        sage: prod = EllipticProduct(E0, E0) #TODO is this ok or should I use an actual working example?
+        sage: prod.isogeny([prod(P0, P0), prod(Q0, Q0)]) # not implemented
+
+AUTHORS:
+
+- Alessandro Sferlazza, Lorenz Panny (2025): Initial version
+"""
+
 # TODO answer questions:
 # - nicer error messages?
+# - handle products as part of the CartesianProduct category?
 
 import sage.all
 from sage.structure.element import AdditiveGroupElement
@@ -18,13 +55,17 @@ def _unpack(packed): # packed is a tuple
 
 @richcmp_method
 class EllipticProduct(Parent, UniqueRepresentation):
-
+    r"""
+    LONG DOCSTRING
+    """
     @staticmethod
     def __classcall__(cls, *curves):
         return super().__classcall__(cls, *_unpack(curves))
 
     def __init__(self, *curves):
-
+        r"""
+        minimal docstring with like 1 example
+        """
         super().__init__(self)
 
         from sage.schemes.elliptic_curves.ell_generic import EllipticCurve_generic
@@ -41,15 +82,31 @@ class EllipticProduct(Parent, UniqueRepresentation):
         return EllipticProductPoint(self, *args, **kwds)
     
     def factors(self):
+        r"""
+        Return the factors of this product of elliptic curves as a tuple.
+        """
         return self._factors  # that's fine because self._curves is a tuple
     
     def __getitem__(self, n):
+        r"""
+        Return the ``n``-th elliptic curve of this product.
+
+        INPUT:
+
+        - ``n`` -- integer
+        """
         return self._factors[n]
 
-    def __len__(self, n): # TODO needed?
+    def __len__(self): # TODO needed?
+        r"""
+        Return the number of factors of this product.
+        """
         return len(self._factors)
 
     def _repr_(self):
+        r"""
+        Return a string representation of this product of elliptic curves.
+        """
         return "Product of elliptic curves: " + str(self._factors)
 
     def __richcmp__(self, other, op):
@@ -58,28 +115,49 @@ class EllipticProduct(Parent, UniqueRepresentation):
         return richcmp(self._factors, other._factors, op)
 
     def dimension(self):
+        r"""
+        Return the dimension of this product as an algebraic variety.
+
+        Since every factor of the product has dimension 1,
+        the output matches the output of :meth:`__len__`.
+        """
         return len(self._factors)
     
     def base_ring(self):
+        r"""
+        Return the base ring of ``self``.
+
+        This is the common base ring of all factors of the product.
+        """
         return self._base_ring
     
     def base_field(self):
+        r"""
+        Return the base field of ``self``.
+
+        This is the common base field where all the factors are defined.
+        """
         if self._base_ring.is_field():
             return self._base_ring
         else:
             raise ValueError("elliptic curve product not defined over a field")
         
     def random_element(self):
+        r"""
+        Return a random point on this elliptic curve product.
+        """
         return self(*(curve.random_element() for curve in self._factors))
     
     random_point = random_element
     
     def j_invariants(self):
+        r"""
+        Return the tuple of j-invariants of the curves constituting
+        this product. FIXME ??
+        """
         return tuple(curve.j_invariant() for curve in self._factors)
-
-    def lift_x(self, *xs):
-        xs = _unpack(xs)
-        return self(*(curve.lift_x(x) for curve, x in zip(self._factors, xs)))
+    
+    # NOTE I removed lift_x. Too much effort to match the existing elliptic curve interface, not strictly needed
 
 class EllipticProductPoint(AdditiveGroupElement):
     def __init__(self, parent, *components):
@@ -92,27 +170,53 @@ class EllipticProductPoint(AdditiveGroupElement):
         self._components = tuple(curve(point) for curve, point in zip(parent._factors, components))
 
     def components(self):
+        r"""
+        Return the components of this point as a tuple of elliptic curve points.
+        """
         return self._components
     
     def _repr_(self):
+        r"""
+        Return a string representation of this point.
+        """
         return f"Point {self._components} on {self.parent()}"
     
     def __getitem__(self, n):
+        r"""
+        Return the ``n``-th component of this point. # TODO how to make more informative?
+        """
         return self._components[n]
     
     def __iter__(self):
+        r"""
+        Return an iterator over the components of this point.
+        """
         return iter(self._components)
     
     def __len__(self):
+        r"""
+        Return the number of components of this point.
+        """
         return len(self._components)
 
     def _richcmp_(self, other, op):
         return richcmp(self._components, other._components, op)
     
     def __bool__(self):
+        r"""
+        Implements the conversion of this point to boolean.
+
+        Returns 0 if all components of this point are the zero element
+        on the respective elliptic curves, 1 otherwise.
+        """
         return any(self)
 
     def base_ring(self):
+        r"""
+        Return the base ring of ``self``.
+
+        This is the common base ring of all factors of the product.
+        """
         return self.parent().base_ring()
     
     base_field = base_ring
@@ -248,6 +352,17 @@ if __name__ == "__main__":
     
     from sage.groups.additive_abelian.additive_abelian_wrapper import AdditiveAbelianGroupWrapper
     # print(AdditiveAbelianGroupWrapper.from_generators([PP,QQ,RR]))
+
+    print(prod2.category())
+
+
+    Fp2, i = GF(419**2, name='i', modulus=var('x')**2 + 1).objgen()
+    E0, E1 = EllipticCurve(Fp2, [1,0]), EllipticCurve(Fp2, [3,4])
+    E0E1 = EllipticProduct(E0, E1); print(E0E1)
+    P0, P1 = E0.lift_x(-1), E1([5, 12])
+    PP = E0E1(P0, P1)
+    print(all(P in E for P, E in zip(PP, E0E1.factors())))
+
 
 
     
