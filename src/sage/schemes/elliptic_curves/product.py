@@ -46,6 +46,9 @@ class EllipticProduct(Parent, UniqueRepresentation):
     def __getitem__(self, n):
         return self._factors[n]
 
+    def __len__(self, n): # TODO needed?
+        return len(self._factors)
+
     def _repr_(self):
         return "Product of elliptic curves: " + str(self._factors)
 
@@ -100,6 +103,8 @@ class EllipticProductPoint(AdditiveGroupElement):
     def __iter__(self):
         return iter(self._components)
     
+    def __len__(self):
+        return len(self._components)
 
     def _richcmp_(self, other, op):
         return richcmp(self._components, other._components, op)
