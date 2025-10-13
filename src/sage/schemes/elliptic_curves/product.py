@@ -17,23 +17,22 @@ def _unpack(packed): # packed is a tuple
         return packed
 
 @richcmp_method
-class EllipticProduct(Parent, UniqueRepresentation): # TODO choose reasonable superclasses related to algebraic structure or group structure
+class EllipticProduct(Parent, UniqueRepresentation):
 
     @staticmethod
     def __classcall__(cls, *curves):
         return super().__classcall__(cls, *_unpack(curves))
 
-    def __init__(self, *curves): # TODO __init__ with iterator (list/tuple) or with all the curves as arguments? 
+    def __init__(self, *curves):
+
         super().__init__(self)
 
         from sage.schemes.elliptic_curves.ell_generic import EllipticCurve_generic
         if any(not isinstance(curve, EllipticCurve_generic) for curve in curves):
             raise TypeError("all of the given components should be elliptic curves")
-        # TODO check that the dimension is at least 2?
         R = curves[0].base_ring()
         if any(curve.base_ring() != R for curve in curves):
             raise TypeError("all of the given components should be defined over the same base ring")
-        # TODO other input checks?
 
         self._factors = curves
         self._base_ring = R
@@ -46,9 +45,6 @@ class EllipticProduct(Parent, UniqueRepresentation): # TODO choose reasonable su
     
     def __getitem__(self, n):
         return self._factors[n]
-    
-    # TODO check Parent docs
-    # TODO check unique parent
 
     def _repr_(self):
         return "Product of elliptic curves: " + str(self._factors)
@@ -81,8 +77,6 @@ class EllipticProduct(Parent, UniqueRepresentation): # TODO choose reasonable su
     def lift_x(self, *xs):
         xs = _unpack(xs)
         return self(*(curve.lift_x(x) for curve, x in zip(self._factors, xs)))
-    
-    # TODO other methods??
 
 class EllipticProductPoint(AdditiveGroupElement):
     def __init__(self, parent, *components):
@@ -106,7 +100,6 @@ class EllipticProductPoint(AdditiveGroupElement):
     def __iter__(self):
         return iter(self._components)
     
-    # TODO analogous of the curve product .dimension() method? giving the len of _components? or is it implicit from iter?
 
     def _richcmp_(self, other, op):
         return richcmp(self._components, other._components, op)
