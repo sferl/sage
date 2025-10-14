@@ -26,8 +26,8 @@ EXAMPLES::
     Implement isogenies between products of elliptic curves:: 
 
         sage: P0, Q0 = E0.torsion_basis(4)
-        sage: prod = EllipticProduct(E0, E0) #TODO is this ok or should I use an actual working example?
-        sage: prod.isogeny([prod(P0, P0), prod(Q0, Q0)]) # not implemented
+        sage: prod = EllipticProduct(E0, E0) FIXME is this ok or should I use an actual working example?
+        sage: prod.isogeny([prod(P0, P0), prod(Q0, Q0)])  # not implemented
 
 AUTHORS:
 
@@ -54,8 +54,8 @@ def _unpack(packed): # packed is a tuple
     return this element as a tuple. Otherwise, return ``packed`` itself.
 
     This method allows the class constructors below to take factors/components
-    as arguments, either packed together in a single list/tuple or separately
-    as multiple arguments.
+    as arguments, either packed together in a single list/tuple
+    or separately as multiple arguments.
     """
     if len(packed) == 1:
         unpacked, = packed
@@ -66,7 +66,7 @@ def _unpack(packed): # packed is a tuple
 @richcmp_method
 class EllipticProduct(Parent, UniqueRepresentation):
     r"""
-    LONG DOCSTRING TODO
+    A product of elliptic curves over a general ring.
     """
     @staticmethod
     def __classcall__(cls, *curves):
@@ -80,10 +80,18 @@ class EllipticProduct(Parent, UniqueRepresentation):
     def __init__(self, *curves):
         r"""
         Construct a product of elliptic curves from its factors.
+
+        INPUT:
+
+        - ``curves``: a tuple of elliptic curves
+
+        TODO in the tests: say there should be at least one component
         """
         super().__init__(self)
 
         from sage.schemes.elliptic_curves.ell_generic import EllipticCurve_generic
+        if not len(curves):
+            raise ValueError("there must be at least 1 factor")
         if any(not isinstance(curve, EllipticCurve_generic) for curve in curves):
             raise TypeError("all of the given components should be elliptic curves")
         R = curves[0].base_ring()
@@ -95,7 +103,8 @@ class EllipticProduct(Parent, UniqueRepresentation):
 
     def _element_constructor_(self, *args, **kwds):
         r"""
-        Construct a point on this product of elliptic curves.
+        Call the :class:`EllipticProductPoint` constructor
+        to initialize a point on this product of elliptic curves.
         """
         return EllipticProductPoint(self, *args, **kwds)
     
@@ -128,6 +137,11 @@ class EllipticProduct(Parent, UniqueRepresentation):
         return "Product of elliptic curves: " + str(self._factors)
 
     def __richcmp__(self, other, op):
+        r"""
+        Compare two elliptic curve products.
+        
+        This is done by comparing the underlying tuples of factors.
+        """
         if not isinstance(other, EllipticProduct):
             return NotImplemented
         return richcmp(self._factors, other._factors, op)
@@ -178,11 +192,24 @@ class EllipticProduct(Parent, UniqueRepresentation):
 
 class EllipticProductPoint(AdditiveGroupElement):
     r"""
-    LONG DOCSTRING TODO
+    A point on a product of elliptic curves over a general ring.
+
+    It is represented by a tuple of elliptic curve points.
+    If the parent product is `E_1 \times \dots \times E_m`, and
+    the point is `P = (P_1, \dots, P_m)`, then `P_i` belongs to `E_i`
+    for all `i = 1, \dots, m`.
     """
     def __init__(self, parent, *components):
         r"""
         Construct on an elliptic curve product from its components.
+
+        INPUT:
+
+        - ``parent``: an instance of :class:`EllipticProduct`
+
+        - ``components``: either a list, or multiple arguments,
+        where each element can be converted into a point on the corresponding
+        elliptic curve in the parent product. FIXME strange phrasing
         """
         super().__init__(parent)
 
@@ -208,6 +235,10 @@ class EllipticProductPoint(AdditiveGroupElement):
         r"""
         Return the ``n``-th component of this point.
 
+        INPUT:
+
+        - ``n``: an integer
+
         OUTPUT: an elliptic curve point
         on the ``n``-th factor of the parent product.
         """
@@ -226,6 +257,11 @@ class EllipticProductPoint(AdditiveGroupElement):
         return len(self._components)
 
     def _richcmp_(self, other, op):
+        r"""
+        Compare two points on the same elliptic curve product.
+
+        This is done by comparing the underlying component tuples.
+        """
         return richcmp(self._components, other._components, op)
     
     def __bool__(self):
