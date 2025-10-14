@@ -171,7 +171,7 @@ class EllipticProduct(Parent, UniqueRepresentation):
             sage: A = EllipticProduct(E0, E0)
             sage: P = E0.random_point()
             sage: Q = 2 * P
-            sage: PP = A(P, Q, E0(0))
+            sage: PP = A(P, Q)
         """
         return EllipticProductPoint(self, *args, **kwds)
     
@@ -421,11 +421,11 @@ class EllipticProductPoint(AdditiveGroupElement):
             ...
             TypeError: number of points does not match parent dimension
 
-            sage: B = EllipticCurve(E0, E0)
+            sage: B = EllipticProduct(E0, E0)
             sage: B([P.x(), P.y()])
             Traceback (most recent call last):
             ...
-            TypeError: v (=(51727,)) must have 3 components
+            TypeError: v ... must have 3 components
         """
         super().__init__(parent)
 
