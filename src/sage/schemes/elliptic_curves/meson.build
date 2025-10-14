@@ -51,6 +51,7 @@ py.install_sources(
   'padics.py',
   'period_lattice.py',
   'period_lattice_region.pyx',
+  'product.py',
   'saturation.py',
   'sha_tate.py',
   'weierstrass_morphism.py',
