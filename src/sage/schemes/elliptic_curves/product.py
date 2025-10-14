@@ -37,6 +37,7 @@ AUTHORS:
 # TODO answer questions:
 # - nicer error messages?
 # - handle products as part of the CartesianProduct category?
+# - write examples and tests in all docstrings
 
 import sage.all
 from sage.structure.element import AdditiveGroupElement
@@ -47,7 +48,16 @@ from builtins import staticmethod
 from sage.rings.integer_ring import ZZ
 
 def _unpack(packed): # packed is a tuple
-    if len(packed) == 1 and isinstance(packed, (list, tuple)):
+    r"""
+    Helper function for initialization methods.
+    Used when ``packed`` is a tuple/list containing only one iterable element,
+    return this element as a tuple. Otherwise, return ``packed`` itself.
+
+    This method allows the class constructors below to take factors/components
+    as arguments, either packed together in a single list/tuple or separately
+    as multiple arguments.
+    """
+    if len(packed) == 1:
         unpacked, = packed
         return tuple(unpacked)
     else:
@@ -56,15 +66,20 @@ def _unpack(packed): # packed is a tuple
 @richcmp_method
 class EllipticProduct(Parent, UniqueRepresentation):
     r"""
-    LONG DOCSTRING
+    LONG DOCSTRING TODO
     """
     @staticmethod
     def __classcall__(cls, *curves):
+        r"""
+        Construct a product of elliptic curves from its factors.
+
+        Method used for compatibility with UniqueRepresentation.
+        """
         return super().__classcall__(cls, *_unpack(curves))
 
     def __init__(self, *curves):
         r"""
-        minimal docstring with like 1 example
+        Construct a product of elliptic curves from its factors.
         """
         super().__init__(self)
 
@@ -79,6 +94,9 @@ class EllipticProduct(Parent, UniqueRepresentation):
         self._base_ring = R
 
     def _element_constructor_(self, *args, **kwds):
+        r"""
+        Construct a point on this product of elliptic curves.
+        """
         return EllipticProductPoint(self, *args, **kwds)
     
     def factors(self):
@@ -152,15 +170,20 @@ class EllipticProduct(Parent, UniqueRepresentation):
     
     def j_invariants(self):
         r"""
-        Return the tuple of j-invariants of the curves constituting
-        this product. FIXME ??
+        Return the j-invariant of each factor of the product as a tuple.
         """
         return tuple(curve.j_invariant() for curve in self._factors)
     
     # NOTE I removed lift_x. Too much effort to match the existing elliptic curve interface, not strictly needed
 
 class EllipticProductPoint(AdditiveGroupElement):
+    r"""
+    LONG DOCSTRING TODO
+    """
     def __init__(self, parent, *components):
+        r"""
+        Construct on an elliptic curve product from its components.
+        """
         super().__init__(parent)
 
         components = _unpack(components)
@@ -183,7 +206,10 @@ class EllipticProductPoint(AdditiveGroupElement):
     
     def __getitem__(self, n):
         r"""
-        Return the ``n``-th component of this point. # TODO how to make more informative?
+        Return the ``n``-th component of this point.
+
+        OUTPUT: an elliptic curve point
+        on the ``n``-th factor of the parent product.
         """
         return self._components[n]
     
@@ -215,26 +241,59 @@ class EllipticProductPoint(AdditiveGroupElement):
         r"""
         Return the base ring of ``self``.
 
-        This is the common base ring of all factors of the product.
+        This is the base ring where all components of the point are defined.
+
+        Alias: :meth:`base_field`
         """
         return self.parent().base_ring()
     
     base_field = base_ring
     
     def _add_(self, other):
+        r"""
+        Add ``self`` and ``other`` component-wise.
+        """
         return self.parent()(*(P + Q for P, Q in zip(self._components, other._components)))
     def _neg_(self):
+        r"""
+        Negate ``self`` component-wise.
+        """
         return self.parent()(*(-P for P in self))
     def _sub_(self, other):
+        r"""
+        Subtract ``other`` from ``self`` component-wise.
+        """
         return self.parent()(*(P - Q for P, Q in zip(self._components, other._components)))
     
     def order(self):
+        r"""
+        Return the order of this point in the product additive group,
+        i.e., the least common multiple of the orders of its components.
+
+        The method falls back on
+        :meth:`sage.schemes.elliptic_curves.ell_point.EllipticCurvePoint.order`
+        on each component,
+        hence only succeeds if all components support order computation.
+        """
         from sage.arith.functions import lcm
         if not hasattr(self, "_order"):  # not yet known
             self._order = lcm(point.order() for point in self._components)
         return self._order
     
     def set_order(self, value=None, *, multiple=None, check=True):
+        r"""
+        Set the cached order of this point (i.e., the value of
+        ``self._order``) to the given ``value``.
+
+        Alternatively, when ``multiple`` is given, this method will
+        first run :func:`~sage.groups.generic.order_from_multiple`
+        to determine the exact order from the given multiple of the
+        point order, then cache the result.
+
+        Use this when you know a priori the order of this point, or
+        a multiple of the order, to avoid a potentially expensive
+        order calculation.
+        """
         if multiple is None:
             if not check:
                 self._order = ZZ(value)
@@ -248,9 +307,35 @@ class EllipticProductPoint(AdditiveGroupElement):
             if self.order() != value:  # now the orders of all components are cached so this is fast
                 raise ValueError("actual order strictly divides given order")
         
-    def weil_pairing(self, other, order):
+    def weil_pairing(self, other, order, algorithm):
+        r"""
+        Compute the Weil pairing of this point `P = (P_1, \dots, P_m)` 
+        with another point `Q = (Q_1, \dots, Q_m)` on the same product.
+
+        The Weil pairing on a product of elliptic curves is the product
+        of the Weil pairings on the factor curves of the product:
+
+        .. MATH::
+
+            e_n(P, Q) = e_n(P_1, Q_1) \cdots e_n(P_m, Q_m)
+
+        INPUT:
+
+        - ``other`` -- another point `Q` on the same product as ``self``
+
+        - ``order`` -- integer `n` such that `nP = nQ = (0, \dots, 0)`, where
+          `P` is ``self`` and `Q` is ``other``
+
+        - ``algorithm`` -- (default: ``None``) choices are ``'pari'``
+          and ``'sage'``. PARI is usually significantly faster, but it
+          only works over finite fields. When ``None`` is given, a
+          suitable algorithm is chosen automatically.
+
+        OUTPUT: an `n`-th root of unity in the base field of the curve
+        """
         from sage.misc.misc_c import prod
-        return prod(P.weil_pairing(Q, order) for P, Q in zip(self._components, other._components))
+        return prod(P.weil_pairing(Q, order, algorithm=algorithm)
+                    for P, Q in zip(self._components, other._components))
 
 if __name__ == "__main__":
     # TODO make them into tests
