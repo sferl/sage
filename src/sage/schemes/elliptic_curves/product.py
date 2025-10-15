@@ -39,8 +39,6 @@ AUTHORS:
 # - nicer error messages?
 # - handle products as part of the CartesianProduct category?
 # - should we really have elliptic curve products under elliptic curves or in a separate folder/module?
-# TODO write examples and tests in all docstrings
-# TODO implement zero, fix examples/tests in EllipticProductPoint._sub_, bool accordingly
 # TODO print Point (...) on product of curves ..., or just the components? fix examples accordingly
 # TODO implement category
 # TODO setup all the # needs...
@@ -424,7 +422,7 @@ class EllipticProductPoint(AdditiveGroupElement):
             sage: PP = A(P, Q, E0(0))
             sage: all(P in E0 for P in PP)
             True
-            
+
     The arguments can also be passed as a single tuple or list::
 
         sage: PP == A([P, Q, E0(0)])
@@ -434,6 +432,11 @@ class EllipticProductPoint(AdditiveGroupElement):
     elliptic curve::
 
         sage: PP == A([P.x(), P.y()], Q, 0)
+        True
+
+    Passing 0 as argument returns the point with all zero components::
+
+        sage: A(0) == A(0, 0, 0) == 0
         True
     """
     def __init__(self, parent, *components):
@@ -474,6 +477,10 @@ class EllipticProductPoint(AdditiveGroupElement):
             TypeError: v ... must have 3 components
         """
         super().__init__(parent)
+
+        if components == (0,):
+            self._components = tuple(curve(0) for curve in parent._factors)
+            return
 
         components = _unpack(components)
         if len(components) != parent.dimension():
@@ -671,7 +678,7 @@ class EllipticProductPoint(AdditiveGroupElement):
             sage: P = A((-1,-2), (-1,1))
             sage: Q = -P; Q.components()
             ((-1 : 1 : 1), (-1 : -2 : 1))
-            sage: not Q + P
+            sage: Q + P == 0
             True
         """
         return self.parent()(*(-P for P in self))
@@ -835,7 +842,7 @@ class EllipticProductPoint(AdditiveGroupElement):
             [2, 6, 3]
             sage: G = A(G0, G0, G0)
             sage: G.set_order(2)
-            sage: 2*G == A(0, 0, 0)
+            sage: 2*G == 0
             True
 
             sage: # needs sage.rings.finite_rings
@@ -882,7 +889,7 @@ class EllipticProductPoint(AdditiveGroupElement):
             sage: Q = n/m * E.lift_x(5730 + 4919 * a)
             sage: R = 5 * P
             sage: PP = A(P, Q, R)
-            sage: assert not m * PP
+            sage: assert m * PP == 0
             sage: PP.set_order(multiple=m)             # compute exact order
             sage: PP.order() == m                      # order is now fast to compute
             True
@@ -1013,6 +1020,7 @@ class EllipticProductPoint(AdditiveGroupElement):
             sage: P1, Q1 = E1.torsion_basis(7)
             sage: P, Q = A(P0, P1), A(Q0, Q1)
 
+            sage: # needs sage.rings.finite_rings
             sage: P.weil_pairing(Q, 7)  # random
             3154*a + 5375
             sage: P.weil_pairing(Q, 7).multiplicative_order().divides(7)
@@ -1032,6 +1040,7 @@ class EllipticProductPoint(AdditiveGroupElement):
             sage: A(0, P1).weil_pairing(A(Q0, 0), 7) == F(1)
             True
 
+            sage: # needs sage.rings.finite_rings
             sage: B = EllipticProduct(E0, E0)
             sage: B(P0, Q0).weil_pairing(B(Q0, P0), 7 * 37)
             1
