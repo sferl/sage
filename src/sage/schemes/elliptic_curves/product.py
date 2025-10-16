@@ -52,6 +52,14 @@ from sage.structure.unique_representation import UniqueRepresentation
 from sage.structure.richcmp import richcmp, richcmp_method
 from builtins import staticmethod
 from sage.rings.integer_ring import ZZ
+from sage.schemes.elliptic_curves.ell_generic import EllipticCurve_generic
+from sage.schemes.projective.projective_space import ProjectiveSpace
+from sage.schemes.product_projective.space import ProductProjectiveSpaces
+from sage.schemes.projective.projective_homset import SchemeHomset_points_abelian_variety_field
+from sage.schemes.projective.projective_subscheme import AlgebraicScheme_subscheme_projective
+from sage.schemes.product_projective.subscheme import AlgebraicScheme_subscheme_product_projective
+from sage.schemes.product_projective.point import ProductProjectiveSpaces_point_ring
+from sage.categories.schemes import AbelianVarieties
 
 def _unpack(packed): # packed is a tuple
     r"""
@@ -91,7 +99,7 @@ def _unpack(packed): # packed is a tuple
         return tuple(packed)
 
 @richcmp_method
-class EllipticProduct(Parent, UniqueRepresentation):
+class EllipticProduct(AlgebraicScheme_subscheme_product_projective, UniqueRepresentation): #, AlgebraicScheme_subscheme_product_projective):
     r"""
     A product of elliptic curves over a general ring.
 
@@ -148,7 +156,11 @@ class EllipticProduct(Parent, UniqueRepresentation):
             sage: EllipticProduct()
             Traceback (most recent call last):
             ...
-            ValueError: there must be at least 1 factor
+            ValueError: there must be at least 2 factors
+            sage: EllipticProduct(E0)
+            Traceback (most recent call last):
+            ...
+            ValueError: there must be at least 2 factors
 
             sage: P = E0.random_point()
             sage: EllipticProduct(E0, P)
@@ -156,7 +168,8 @@ class EllipticProduct(Parent, UniqueRepresentation):
             ...
             TypeError: all of the given components should be elliptic curves
         """
-        return super().__classcall__(cls, *_unpack(curves))
+        cls.point = EllipticProductPoint
+        return UniqueRepresentation.__classcall__(cls, *_unpack(curves))
 
     def __init__(self, *curves):
         r"""
@@ -173,11 +186,8 @@ class EllipticProduct(Parent, UniqueRepresentation):
             sage: A = EllipticProduct(E0, E1); A
             Product of elliptic curves: (Elliptic Curve defined by y^2 = x^3 + x over Integer Ring, Elliptic Curve defined by y^2 = x^3 + 2*x + 3 over Integer Ring)
         """
-        super().__init__(self)
-
-        from sage.schemes.elliptic_curves.ell_generic import EllipticCurve_generic
-        if not len(curves):
-            raise ValueError("there must be at least 1 factor")
+        if len(curves) < 2:
+            raise ValueError("there must be at least 2 factors")
         if any(not isinstance(curve, EllipticCurve_generic) for curve in curves):
             raise TypeError("all of the given components should be elliptic curves")
         R = curves[0].base_ring()
@@ -186,6 +196,17 @@ class EllipticProduct(Parent, UniqueRepresentation):
 
         self._factors = curves
         self._base_ring = R
+
+        dim = len(curves)
+        proj_space = ProductProjectiveSpaces([2] * dim, R)
+        gens = proj_space.gens()
+        category = AbelianVarieties(R) if R.is_field() else None
+        polynomials = [
+            E.defining_polynomial()(x=gens[3 * j], y=gens[3*j + 1], z=gens[3*j + 2]) for E, j in zip(curves, range(len(curves)))
+        ]
+        AlgebraicScheme_subscheme_product_projective.__init__(self, proj_space, polynomials, category=category)
+        
+        Parent.__init__(self)
 
     def _element_constructor_(self, *args, **kwds):
         r"""
@@ -205,6 +226,13 @@ class EllipticProduct(Parent, UniqueRepresentation):
         """
         return EllipticProductPoint(self, *args, **kwds)
     
+    __call__ = _element_constructor_ # FIXME hacky. Is that correct?
+    
+
+    def _point_homset(self, *args, **kwds):
+        return SchemeHomset_points_abelian_variety_field(*args, **kwds)
+
+
     def factors(self):
         r"""
         Return the factors of this product of elliptic curves as a tuple.
@@ -270,11 +298,6 @@ class EllipticProduct(Parent, UniqueRepresentation):
             sage: E = EllipticCurve(GF(p), [1,0])
             sage: A = EllipticProduct(E, E); A
             Product of elliptic curves: (Elliptic Curve defined by y^2 = x^3 + x over Finite Field of size 419, Elliptic Curve defined by y^2 = x^3 + x over Finite Field of size 419)
-        
-        TESTS::
-
-            sage: EE = EllipticProduct(E); EE
-            Product of elliptic curves: (Elliptic Curve defined by y^2 = x^3 + x over Finite Field of size 419,)
         """
         return "Product of elliptic curves: " + str(self._factors)
         
@@ -314,8 +337,8 @@ class EllipticProduct(Parent, UniqueRepresentation):
             sage: p = random_prime(2, 1000); F = GF(p)
             sage: E0 = EllipticCurve(j=F(0))
             sage: E1 = EllipticCurve(j=F(1))
-            sage: A = EllipticProduct(E0); A.dimension()
-            1
+            sage: A = EllipticProduct(E1, E1); A.dimension()
+            2
             sage: A = EllipticProduct([E0, E0, E0, E1, E0]); A.dimension()
             5
         """
@@ -400,7 +423,7 @@ class EllipticProduct(Parent, UniqueRepresentation):
     
     # NOTE I removed lift_x. Too much effort to match the existing elliptic curve interface, not strictly needed
 
-class EllipticProductPoint(AdditiveGroupElement):
+class EllipticProductPoint(AdditiveGroupElement, ProductProjectiveSpaces_point_ring):
     r"""
     A point on a product of elliptic curves over a general ring.
 
@@ -476,17 +499,18 @@ class EllipticProductPoint(AdditiveGroupElement):
             ...
             TypeError: v ... must have 3 components
         """
-        super().__init__(parent)
-
+        components = _unpack(components)
+        
         if components == (0,):
             self._components = tuple(curve(0) for curve in parent._factors)
-            return
-
-        components = _unpack(components)
-        if len(components) != parent.dimension():
-            raise TypeError("number of points does not match parent dimension")
-        
-        self._components = tuple(curve(point) for curve, point in zip(parent._factors, components))
+        else:  
+            if len(components) != parent.dimension():
+                raise TypeError("number of points does not match parent dimension")
+            self._components = tuple(curve(point) for curve, point in zip(parent._factors, components))
+    
+        coords = [coord for P in self._components for coord in P._coords]        
+        ProductProjectiveSpaces_point_ring.__init__(self, parent.point_homset(), coords)    
+        AdditiveGroupElement.__init__(self, parent)
 
     def components(self):
         r"""
@@ -501,25 +525,6 @@ class EllipticProductPoint(AdditiveGroupElement):
             ((0 : 1 : 0), (1 : 25309 : 1))
         """
         return self._components
-    
-    def _repr_(self):
-        r"""
-        Return a string representation of this point.
-
-        EXAMPLES::
-            
-            sage: F = GF(62207)
-            sage: E0 = EllipticCurve(j=F(1728)); E1 = EllipticCurve(j=F(0))
-            sage: A = EllipticProduct([E0, E1])
-            sage: P = A(0, E1.lift_x(1)); P
-            Point ((0 : 1 : 0), (1 : 25309 : 1)) on Product of elliptic curves: (Elliptic Curve defined by y^2 = x^3 + x over Finite Field of size 62207, Elliptic Curve defined by y^2 = x^3 + 1 over Finite Field of size 62207)
-        """
-        return f"Point {self._components} on {self.parent()}"
-    # TODO point representation of a single elliptic curve point relies on the point representation of the ambient space,
-    # which in this case would be something like a product of projective spaces. What to do?
-    # Define ambient_space() on the products and fix that?
-    # TODO points on a single elliptic curve are only printed as their tuple of homogeneous normalized coordinates. Do the same for EllipticProductPoint_s?
-
     
     def __getitem__(self, n):
         r"""
@@ -575,7 +580,7 @@ class EllipticProductPoint(AdditiveGroupElement):
         TESTS::
 
             sage: F = GF(random_prime(2000))
-            sage: n = randint(1, 10)
+            sage: n = randint(2, 10)
             sage: curves = [EllipticCurve(j=F.random_element())
             ....:           for _ in range(n)]
             sage: PP = EllipticProduct(curves).random_point()
@@ -658,7 +663,7 @@ class EllipticProductPoint(AdditiveGroupElement):
             sage: R = A(E0(301098, 673883, 644675), E1(103, 124732, 1))
             sage: T = A(E0(411415, 758555, 255837), E1(4, 6, 2))
             sage: Q = R + T; Q
-            Point ((195489 : 920357 : 107), (63226 : 301196 : 1030301)) on Product of elliptic curves: ...
+            (195489 : 920357 : 107 , 63226 : 301196 : 1030301)
             sage: Q[0] == R[0] + T[0] and Q[1] == R[1] + T[1]
             True
 
