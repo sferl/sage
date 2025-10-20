@@ -37,7 +37,7 @@ AUTHORS:
 
 # TODO answer questions:
 # - nicer error messages?
-# - handle products as part of the CartesianProduct category?
+# - handle products as part of the CartesianProduct category? this would include all richcmp and arithmetic operations automatically!!!
 # - should we really have elliptic curve products under elliptic curves or in a separate folder/module?
 # TODO print Point (...) on product of curves ..., or just the components? fix examples accordingly
 # TODO implement category
@@ -148,7 +148,7 @@ class EllipticProduct(Parent, UniqueRepresentation):
             sage: EllipticProduct()
             Traceback (most recent call last):
             ...
-            ValueError: there must be at least 1 factor
+            ValueError: there must be at least 2 factors
 
             sage: P = E0.random_point()
             sage: EllipticProduct(E0, P)
@@ -176,8 +176,8 @@ class EllipticProduct(Parent, UniqueRepresentation):
         super().__init__(self)
 
         from sage.schemes.elliptic_curves.ell_generic import EllipticCurve_generic
-        if not len(curves):
-            raise ValueError("there must be at least 1 factor")
+        if len(curves) < 2:
+            raise ValueError("there must be at least 2 factors")
         if any(not isinstance(curve, EllipticCurve_generic) for curve in curves):
             raise TypeError("all of the given components should be elliptic curves")
         R = curves[0].base_ring()
@@ -270,11 +270,6 @@ class EllipticProduct(Parent, UniqueRepresentation):
             sage: E = EllipticCurve(GF(p), [1,0])
             sage: A = EllipticProduct(E, E); A
             Product of elliptic curves: (Elliptic Curve defined by y^2 = x^3 + x over Finite Field of size 419, Elliptic Curve defined by y^2 = x^3 + x over Finite Field of size 419)
-        
-        TESTS::
-
-            sage: EE = EllipticProduct(E); EE
-            Product of elliptic curves: (Elliptic Curve defined by y^2 = x^3 + x over Finite Field of size 419,)
         """
         return "Product of elliptic curves: " + str(self._factors)
         
@@ -314,8 +309,8 @@ class EllipticProduct(Parent, UniqueRepresentation):
             sage: p = random_prime(2, 1000); F = GF(p)
             sage: E0 = EllipticCurve(j=F(0))
             sage: E1 = EllipticCurve(j=F(1))
-            sage: A = EllipticProduct(E0); A.dimension()
-            1
+            sage: A = EllipticProduct(E1, E1); A.dimension()
+            2
             sage: A = EllipticProduct([E0, E0, E0, E1, E0]); A.dimension()
             5
         """
@@ -436,7 +431,9 @@ class EllipticProductPoint(AdditiveGroupElement):
 
     Passing 0 as argument returns the point with all zero components::
 
-        sage: A(0) == A(0, 0, 0) == 0
+        sage: A(0) == A(0, 0, 0)
+        True
+        sage: A(0) == 0
         True
     """
     def __init__(self, parent, *components):
