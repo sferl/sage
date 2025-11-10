@@ -29,19 +29,22 @@ EXAMPLES::
         sage: prod = EllipticProduct(E0, E0)
         sage: prod.isogeny([prod(P0, P0), prod(Q0, Q0)])  # not implemented
 
-#FIXME is this ok or should I use an actual working example?
 AUTHORS:
 
-- Alessandro Sferlazza, Lorenz Panny (2025): Initial version
+- Alessandro Sferlazza (2025): Initial version
 """
 
-# TODO answer questions:
+# TODO:
 # - nicer error messages?
-# - handle products as part of the CartesianProduct category? this would include all richcmp and arithmetic operations automatically!!!
-# - should we really have elliptic curve products under elliptic curves or in a separate folder/module?
-# TODO print Point (...) on product of curves ..., or just the components? fix examples accordingly
-# TODO implement category
-# TODO setup all the # needs...
+# - setup all the #needs
+# - is the docstring style ok?
+
+# for the future:
+# TODO integrate interface with category system: make EllipticProduct an abelian variety:
+#  - build EllipticProduct as a CartesianProduct of elliptic curves? this should make :meth:`__richcmp__`, :meth:`__len__`, :meth:`__iter__` redundant
+#  - give group structure as product of elliptic curve abelian groups.
+#    In EllipticProductPoint, inheriting from a product of groups makes sure that :meth:`_richcmp_`, :meth:`__len__`, :meth:`__iter__`, :meth:`__bool__`,
+#    and the arithmetic methods :meth:`_add_`, :meth:`_sub_`, :meth:`_neg_`, handling of the zero element are automatically inherited
 # TODO implement cardinalities
 # TODO implement abelian_group()
 
@@ -53,7 +56,7 @@ from sage.structure.richcmp import richcmp, richcmp_method
 from builtins import staticmethod
 from sage.rings.integer_ring import ZZ
 
-def _unpack(packed): # packed is a tuple
+def _unpack(packed):
     r"""
     Helper function for initialization methods.
     When ``packed`` is a tuple/list containing only one iterable element,
@@ -243,7 +246,7 @@ class EllipticProduct(Parent, UniqueRepresentation):
         """
         return self._factors[n]
 
-    def __len__(self): # TODO needed?
+    def __len__(self):
         r"""
         Return the number of factors of this product.
 
@@ -355,7 +358,7 @@ class EllipticProduct(Parent, UniqueRepresentation):
             ...
             ValueError: elliptic curve product not defined over a field
         """
-        # FIXME need it? should it be an alias of base_ring? should I check instead that the children are instances of EllipticCurve_field?
+        # TODO need it? should it be an alias of base_ring? should I check instead that the children are instances of EllipticCurve_field?
         if self._base_ring.is_field():
             return self._base_ring
         else:
@@ -373,7 +376,7 @@ class EllipticProduct(Parent, UniqueRepresentation):
             ....:   for _ in range(5)]
             sage: PP = EllipticProduct(curves).random_element()
             sage: PP in EllipticProduct(curves)  # random
-            Point ((333*a + 36 : 225*a + 629 : 1), (590*a + 387 : 712*a + 703 : 1)) on Product of elliptic curves: (Elliptic Curve defined by y^2 = x^3 + (710*a+529)*x + (661*a+7) over Finite Field in a of size 787^2, Elliptic Curve defined by y^2 = x^3 + (290*a+525)*x + (438*a+354) over Finite Field in a of size 787^2)
+            ((333*a + 36 : 225*a + 629 : 1), (590*a + 387 : 712*a + 703 : 1))
         """
         return self(*(curve.random_element() for curve in self._factors))
     
@@ -509,14 +512,9 @@ class EllipticProductPoint(AdditiveGroupElement):
             sage: E0 = EllipticCurve(j=F(1728)); E1 = EllipticCurve(j=F(0))
             sage: A = EllipticProduct([E0, E1])
             sage: P = A(0, E1.lift_x(1)); P
-            Point ((0 : 1 : 0), (1 : 25309 : 1)) on Product of elliptic curves: (Elliptic Curve defined by y^2 = x^3 + x over Finite Field of size 62207, Elliptic Curve defined by y^2 = x^3 + 1 over Finite Field of size 62207)
+            ((0 : 1 : 0), (1 : 25309 : 1))
         """
-        return f"Point {self._components} on {self.parent()}"
-    # TODO point representation of a single elliptic curve point relies on the point representation of the ambient space,
-    # which in this case would be something like a product of projective spaces. What to do?
-    # Define ambient_space() on the products and fix that?
-    # TODO points on a single elliptic curve are only printed as their tuple of homogeneous normalized coordinates. Do the same for EllipticProductPoint_s?
-
+        return f"{self._components}"
     
     def __getitem__(self, n):
         r"""
@@ -572,7 +570,7 @@ class EllipticProductPoint(AdditiveGroupElement):
         TESTS::
 
             sage: F = GF(random_prime(2000))
-            sage: n = randint(1, 10)
+            sage: n = randint(2, 10)
             sage: curves = [EllipticCurve(j=F.random_element())
             ....:           for _ in range(n)]
             sage: PP = EllipticProduct(curves).random_point()
@@ -655,7 +653,7 @@ class EllipticProductPoint(AdditiveGroupElement):
             sage: R = A(E0(301098, 673883, 644675), E1(103, 124732, 1))
             sage: T = A(E0(411415, 758555, 255837), E1(4, 6, 2))
             sage: Q = R + T; Q
-            Point ((195489 : 920357 : 107), (63226 : 301196 : 1030301)) on Product of elliptic curves: ...
+            ((195489 : 920357 : 107), (63226 : 301196 : 1030301))
             sage: Q[0] == R[0] + T[0] and Q[1] == R[1] + T[1]
             True
 
@@ -725,8 +723,7 @@ class EllipticProductPoint(AdditiveGroupElement):
             sage: P.order()
             Traceback (most recent call last):
             ...
-            NotImplementedError: Computation of order of a point not implemented
-            over general fields.
+            NotImplementedError: default algorithm not available for order of a point on an elliptic curve over general fields...
             sage: A((0, 0)).additive_order()
             1
             sage: A((0, 0)).order() == 1
