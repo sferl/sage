@@ -6,10 +6,8 @@ from product import EllipticProduct, EllipticProductPoint
 # TODO ._eval
 
 class EllipticProductHom(Morphism):
-    # TODO make sure the parent works well (category)
-    def __init__(self, domain, codomain, degree_polarized=None, kernel=None):
+    def __init__(self, domain, codomain, *, degree_polarized=None, kernel=None):
         r"""
-        TODO
         not call it, only call it from EllipticProduct.isogeny()
         or from_kernel
         only there to set attributes for the child classes
@@ -19,7 +17,8 @@ class EllipticProductHom(Morphism):
 
         if degree_polarized is not None:
             self._degree_polarized = degree_polarized
-        if kernel=
+        if kernel is not None:
+            self._kernel = kernel
         
     @staticmethod
     def from_kernel(domain, kernel, *, degree=None, extra_torsion=None, codomain=None, point_and_image=None, check=True):
@@ -113,7 +112,6 @@ class EllipticProductHom(Morphism):
         if not isinstance(self, EllipticProductHom) or not isinstance(other, EllipticProductHom):
             raise TypeError(f'cannot compose {type(self)} with {type(other)}')
 
-        # TODO where to check that codomain(self) == domain(other) ??
         ret = self._composition_impl(self, other)
 
         if ret is NotImplemented:
@@ -121,6 +119,7 @@ class EllipticProductHom(Morphism):
 
         if ret is NotImplemented:
             ret = EllipticProductHom_composite.from_factors([other, self])
+            # this also checks that codomain(self) == domain(other) ??
 
         return ret
 
@@ -367,9 +366,8 @@ class EllipticProductHom_matrix(EllipticProductHom):
         return self._codomain(img_components)
 
     @staticmethod
-    def _composition_impl(left, right): # TODO check that there's no strange cycle where composite calls matrix who calls composite...
-        # TODO make sure parent _composition_ method checks domain of left and codomain of right coincide
-        if isinstance(left, EllipticProductHom_matrix) and isinstance(right, EllipticProductHom_matrix):
+    def _composition_impl(left, right):
+        if isinstance(left, EllipticProductHom_matrix) and isinstance(right, EllipticProductHom_matrix) and left.domain() == right.codomain():
             domain = right.domain()
             codomain = left.codomain()
             ncols = domain.dimension()
@@ -385,14 +383,11 @@ class EllipticProductHom_matrix(EllipticProductHom):
             ]
             return EllipticProductHom_matrix(mat, domain, codomain)
 
-        # TODO check: the following two lines should be implicit in EllipticProductHom._composition_
-        # elif isinstance(left, EllipticProductHom) or isinstance(right, EllipticProductHom):
-        #     return EllipticProductHom_composite.from_factors((left, right))
         return NotImplemented
 
     def dual(self):
         matrix_duals = [
-            phi.dual() if phi else 0  # TODO handle 0?
+            phi.dual()
             for column in zip(*self._matrix)  # TODO check transposition was correct
             for phi in column
         ]
@@ -413,11 +408,23 @@ from theta.theta_isogenies.product_isogeny_sqrt import EllipticProductIsogeny as
 from theta.theta_isogenies.product_isogeny_sqrt import EllipticProductIsogenySqrt as ProductIsogenyThetaSqrt
 # TODO how to differentiate between sqrt and non-sqrt
 class EllipticProductHom_kani(EllipticProductHom, ProductIsogenyTheta):
+    # TODO set gluing to be isomorphism + step
     def __init__(self, domain, codomain, gluing, steps, splitting, *, check=True):
         # TODO set _degree_polarized, among other things
         ...
         # check maps is gluing, ...steps, splitting
-        
+        self._maps = (gluing, *steps, splitting)
+        self._domain = domain
+        if check and not isinstance(gluing, GluingThetaIsogeny) or \
+              any(not isinstance(phi, (ThetaIsogeny, ThetaIsogeny2, ThetaIsogeny4)) for phi in self._maps) or \
+              not isinstance(splitting, SplittingIsomorphism):
+            raise TypeError
+        if check:
+            for phi in self._maps:
+                if phi.domain() != domain:
+                    raise ValueError("domain doesn't coincide with next codomain") # FIXME
+                domain = phi.codomain()
+        self._codomain = domain  # the last phi.codomain()
 
     def _call_(self, P):
         if P not in self.domain():

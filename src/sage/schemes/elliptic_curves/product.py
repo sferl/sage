@@ -45,6 +45,8 @@ AUTHORS:
 #  - give group structure as product of elliptic curve abelian groups.
 #    In EllipticProductPoint, inheriting from a product of groups makes sure that :meth:`_richcmp_`, :meth:`__len__`, :meth:`__iter__`, :meth:`__bool__`,
 #    and the arithmetic methods :meth:`_add_`, :meth:`_sub_`, :meth:`_neg_`, handling of the zero element are automatically inherited
+#  - realize EllipticProduct as a subscheme of ProductProjectiveSpace
+#    (EllipticCurve does so with ProjectiveSpace, supports methods on the algebraic scheme (/variety) side
 # TODO implement cardinalities
 # TODO implement abelian_group()
 
