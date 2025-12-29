@@ -13,6 +13,8 @@ from sage.structure.richcmp import richcmp_by_eq_and_lt
 # TODO rename _coords to _coordinates?
 # TODO do we care about affine equality? 
 #   if so, new class where we overwrite _eq
+# TODO transform coordwise_invert into a method of the point, that saves the inverse coordinates in a tuple _inverses
+#      or returns notimplementederror if we find a zero point
         
 
 class ThetaPoint(Element):
@@ -141,12 +143,12 @@ class ThetaPoint_level2(ThetaPoint):
         
         return self.parent()(P)
         
-        
-    def diff_addition(self, Q, PmQ, PmQ_is_inverse=False):
+    def diff_addition(self, Q, PmQ, *, PmQ_is_inverse=False):
         """
         Given the theta points of P, Q and P-Q computes the theta point of
         P + Q.
 
+        PmQ needs to be an iterable, not necessarily a point. TODO Do we like it?
         if PmQ_is_inverse, PmQ contains the inverse coordinates of P-Q
         otherwise, PmQ contains the coordinates of P-Q. The algorithm only uses the inverses.
         """
@@ -154,11 +156,14 @@ class ThetaPoint_level2(ThetaPoint):
         inv_U_sq = self.parent()._inv_null_point_dual_sq
 
         P = self.hadamard(self.square_coords(self.coordinates()))
-        Q = self.hadamard(self.square_coords(Q))
+        Q = self.hadamard(self.square_coords(Q.coordinates()))
         R = self.coordwise_multiply(P, Q)
         R = self.coordwise_multiply(R, inv_U_sq)
 
+        PmQ = tuple(PmQ)
         if not PmQ_is_inverse:
+            if any(not x for x in PmQ):
+                raise NotImplementedError(f"zero coordinates in point {PmQ}. Try applying a symplectic basis transformation to be able to perform arithmetic")
             PmQ = self.coordwise_invert(PmQ)
 
         R = self.coordwise_multiply(R, PmQ)
@@ -188,18 +193,25 @@ class ThetaPoint_level2(ThetaPoint):
         # First perform a bulk of doublings, if possible.
         # If m = 2^n, then we skip the subsequent Montgomery ladder
         P0 = self
-        for _ in range(m.valuation(2) - 1):
+        for _ in range(m.valuation(2)):
             P0 = P0.double()
-        m = m >> (m.valuation(2) - 1)
-        # TODO replace this by m.valuation(2) without -1: check ladder steps 
+        m = m >> m.valuation(2)
+        # TODO check ladder
         #############################
+        
+        # now m is odd
+        if m == 1:
+            return P0
         
         P1 = P0
         P2 = P1.double()
+        if any(not x for x in P0):
+            raise NotImplementedError(f"zero coordinates found. try symplectic transfomration on the theta structure {self.parent()}")
+        P0inv = self.coordwise_invert(P0.coordinates())
 
         # Montgomery double and add.
         for bit in bin(m)[3:]:
-            Q = P2.diff_addition(P1, P0)
+            Q = P2.diff_addition(P1, P0inv, PmQ_is_inverse=True)
             if bit == "1":
                 P2 = P2.double()
                 P1 = Q
