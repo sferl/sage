@@ -26,34 +26,41 @@ class ThetaStructure(Parent, UniqueRepresentation):
     Class for the ThetaStructure, defined by its theta null point.
     TODO references.
     """
+    # TODO rename into Theta_Abelian_Variety or something?
+    _point = ThetaPoint
+    _element_constructor_ = _point
+
+    @classmethod
+    def __classcall__(cls, *args, **kwds):
+        r"""
+        Construct a theta structure of a given dimension and level from its
+        null point (the coordinates of the additive identity).
+
+        Method used for compatibility with UniqueRepresentation.
+        """
+        return super().__classcall__(cls, *args, **kwds)
 
     def __init__(self, null_point, *, dimension=2, level=2):
-        # TODO set classcall, parent, element ... as with elliptic curves
-        if dimension != 2 or level != 2:
-            raise NotImplementedError("theta structures for abelian varieties currently only supported in dimension 2 and level 2")
+        if dimension not in (1, 2) or level != 2:
+            raise NotImplementedError("theta structures for abelian varieties currently only supported in dimension <=2 and level 2")
         
+        # TODO support calling with a point instead of just its coordinates?
+        
+        null_point = tuple(null_point)  # throw error if not meaningful iterable
         if len(null_point) != level**dimension:
-            raise ValueError("null point does not have correct ")
+            raise ValueError(f"null point should have {level**dimension} coordinates")
 
         self._base_ring = cm.common_parent(*(c.parent() for c in null_point))
-        self._point = ThetaPoint
-        self._precomputation = None
-        # TODO save precomputation in an easier way?
 
         self._null_point = self._point(self, null_point)
 
-    def __call__(self, coords):
-        # TODO re-factor with classcall ??
-        # TODO support call with 0
-        return self._point(self, coords)
-
-    def null_point(self):
+    def zero(self):
         """
         Return the null point of the given theta structure
         """
         return self._null_point
-    
-    zero = null_point  # the additive identity is the null point
+
+    null_point = zero  # TODO keep alias?
 
     def base_ring(self):
         """
@@ -64,6 +71,15 @@ class ThetaStructure(Parent, UniqueRepresentation):
     def __repr__(self):
         return f"Theta structure over {self.base_ring()} with null point: {self.null_point()}"
 
+class ThetaStructure_level2(ThetaStructure):
+    # TODO rename to Kummer? ThetaSurface? ...
+    # TODO are there actually any specific methods? if the only specific methods are in the points, still keep it?
+    # TODO instead of an init in ThetaStructure, we'd actually need a constructor like EllipticCurve, right?
+    
+    #####################################################
+    ### dim-2 specific methods
+    #####################################################
+    
     def hadamard(self):
         # TODO keep?
         # NOTE dim-2^n specific
@@ -81,47 +97,26 @@ class ThetaStructure(Parent, UniqueRepresentation):
         """
         return self.null_point().squared_theta()
 
-    # def _arithmetic_precomputation(self):
-    #     """
-    #     Precompute 6 field elements used in arithmetic and isogeny computations
-    #     """
-    #     if self._precomputation is None:
-    #         a, b, c, d = self.null_point().coords()
-
-    #         # Technically this computes 4A^2, 4B^2, ...
-    #         # but as we take quotients this doesnt matter
-    #         # Cost: 4S
-    #         AA, BB, CC, DD = self.squared_theta()
-
-    #         # Precomputed constants for addition and doubling
-    #         b_inv, c_inv, d_inv, BB_inv, CC_inv, DD_inv = map(
-    #             lambda x: x^(-1),
-    #             (b, c, d, BB, CC, DD)
-    #         )
-
-    #         y0 = a * b_inv
-    #         z0 = a * c_inv
-    #         t0 = a * d_inv
-
-    #         Y0 = AA * BB_inv
-    #         Z0 = AA * CC_inv
-    #         T0 = AA * DD_inv
-
-    #         self._precomputation = (y0, z0, t0, Y0, Z0, T0)
-    #     return self._precomputation
-
-    @cached_method
-    def rosenhain_from_theta(self):
+    @staticmethod
+    def hyperelliptic_curve_from_theta(J):
         """
-        From a theta null point structure, return the Rosenhain invariants
+        Convert a theta null point structure to an hyperelliptic curve
         """
-        # TODO check if split, keep going if not
-        # TODO dim-2 specific
+        # TODO move to hyperelliptic curve class?
+        if not isinstance(J, ThetaStructure):
+            raise TypeError("J must be a 2-dimensional theta structure")
+        if J.dimension() != 2:
+            raise ValueError("theta structure must be of dimension 2")
+        if J.level != 2:
+            raise NotImplementedError("conversion to hyperelliptic curve only available from non-split dim-2 theta structures of level 2")
+        
+        # TODO check if split, only keep going if not
+        #############################
 
         # Extract out the hadamard transform from the point class
-        to_hadamard = self.zero().to_hadamard
+        to_hadamard = J.zero().to_hadamard
 
-        a, b, c, d = self.coords()
+        a, b, c, d = J.coords()
         A, C, B, D = to_hadamard(a, d, b, c)  # beware the weird order
         if A * B * C * D == 0:
             a, b, c, d = to_hadamard(a, b, c, d)
@@ -141,22 +136,7 @@ class ThetaStructure(Parent, UniqueRepresentation):
         except Exception as e:
             raise ValueError(f"Conversion to rosenhain failed because of: {e}")
 
-        return lam, mu, nu
-
-    @cached_method
-    def hyperelliptic_from_theta(self):
-        """
-        Convert a theta null point structure to an hyperelliptic curve
-        """
-        # TODO check if split, keep going if not
-        # TODO dim-2 specific
-
-        # Extract out the hadamard transform from the point class
-        lam, mu, nu = self.rosenhain_from_theta()
-        if lam is None:
-            raise ValueError("Could not compute Rosenhain roots from the null point")
-
-        R = PolynomialRing(self.base_ring(), name="x")
+        R = PolynomialRing(J.base_ring(), name="x")
         x = R.gens()[0]
 
         f_poly = x * (x - 1) * (x - lam) * (x - mu) * (x - nu)

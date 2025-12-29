@@ -1,56 +1,42 @@
 # Sage Imports
 from sage.all import (
-    cached_method,
     Integer,
-    HyperellipticCurve,
-    PolynomialRing,
 )
 
-from sage.structure.element import AdditiveGroupElement, RingElement
+from sage.structure.element import Element, RingElement
 from theta_structure import ThetaStructure
-
+from sage.structure.richcmp import richcmp_by_eq_and_lt
 
 # ======================================== #
-#     Class for Theta Point (level-2?)     #
+#     Class for Theta Point                #
 # ======================================== #
+# TODO rename _coords to _coordinates?
+# TODO do we care about affine equality? 
+#   if so, new class where we overwrite _eq
+        
 
-
-class ThetaPoint(AdditiveGroupElement):
-    """
-    A Theta Point in the level-2 Theta Structure is defined with four projective
-    coordinates
-
-    We cannot perform arbitrary arithmetic, but we can compute doubles and
-    differential addition, which like x-only points on the Kummer line, allows
-    for scalar multiplication
-    """
-
+class ThetaPoint(Element):
     def __init__(self, parent, coords):
-        # TODO refine interface; for now it's internal, assume it only gets called with coords?
-        if not isinstance(parent, ThetaStructure):
-            raise ValueError
+        super().__init__(parent)
 
-        self._parent = parent
-        self._coords = tuple(coords)
+        if coords == 0:
+            coords = parent.zero().coordinates()
 
-        # TODO dim-2 or 2^n specific
-        self._hadamard = None
-        self._squared_theta = None
-
-    def parent(self):
-        """
-        Return the parent of the element, of type ThetaStructure
-        """
-        # TODO remove when setting up parent infrastructure (should become obsolete)
-        return self._parent
+        coords = tuple(coords)
+        if not any(coords):
+            raise ValueError("projective point cannot must have at least one nonzero coordinate")
+        
+        self._coords = coords
+        # TODO support calling with several arguments?
     
-    def coords(self):
+    def coordinates(self):
         """
         Return the projective coodinates of the ThetaPoint
         """
-        # TODO rename as components, _components for consistency with EllipticProductPoint?
-        #      or rename as coordinates for consistency with manifold points?
         return self._coords
+    
+    def _repr_(self):
+        return f"{self.coordinates()}"
 
     def is_zero(self):
         """
@@ -59,6 +45,67 @@ class ThetaPoint(AdditiveGroupElement):
         """
         # TODO transform into a (not bool()) conversion as soon as we implement A(0) = A.zero()
         return self == self.parent().zero()
+    
+    def bool(self):
+        return not self.is_zero()
+    
+    def scale(self, n):
+        """
+        Scale all coordinates of the ThetaPoint by `n`
+        """
+        if not isinstance(n, RingElement):
+            # TODO how to check if multiplication between n and base_ring is well defined?
+            raise ValueError(f"cannot scale by element {n} of type {type(n)}")
+        if not n:
+            raise ValueError(f"cannot scale projective coordinates by zero")
+        
+        scaled_coords = tuple(n * x for x in self.coordinates())
+        return self._parent(scaled_coords)
+
+    def __getitem__(self, n):
+        return self.coordinates()[n]
+    
+    def __iter__(self):
+        return iter(self.coordinates())
+    
+    def __len__(self):
+        return len(self.coordinates())
+
+    _richcmp_ = richcmp_by_eq_and_lt("_eq", "_lt")
+    def _eq(self, other):
+        """
+        Check the quality of two ThetaPoints. Note that as this is a
+        projective equality, we must be careful for when certain coefficients may
+        be zero.
+        """
+        # TODO make the code general to any number of components
+        if not isinstance(other, self.parent()._point):
+            return NotImplemented
+        if (self.parent().dimension(), self.parent().level()) != \
+            (other.parent().dimension(), other.parent().level()):
+            return NotImplemented
+
+        zero_indices = (i for i in range(len(self)) if not self[i])
+        if any(other[i] for i in zero_indices):
+            return False
+        
+        nonzero_idx = next(i for i in range(len(self)) if self[i])
+        return all(
+            x * other[nonzero_idx] == y * self[nonzero_idx]
+            for x, y in zip(self, other)
+        )
+    def _lt(self, other):
+        return NotImplemented
+
+class ThetaPoint_level2(ThetaPoint):
+    """
+    A Theta Point in the level-2 Theta Structure is defined with
+    2**dimension projective coordinates
+
+    We cannot perform arbitrary arithmetic, but we can compute doubles and
+    differential addition, which like x-only points on the Kummer line, allows
+    for scalar multiplication
+    """
 
     @staticmethod
     def to_hadamard(x_00, x_10, x_01, x_11):
@@ -73,6 +120,10 @@ class ThetaPoint(AdditiveGroupElement):
         x_01, x_11 = (x_01 + x_11, x_01 - x_11)
         return x_00 + x_01, x_10 + x_11, x_00 - x_01, x_10 - x_11
 
+    _hadamard = None
+    _squared_theta = None
+    # TODO can I really do that or should I wrap this into __init__?
+    
     def hadamard(self):
         """
         Compute the Hadamard transformation of this element
@@ -184,16 +235,6 @@ class ThetaPoint(AdditiveGroupElement):
         coords = (X, Y, Z, T)
         return self.parent()(coords)
 
-    def scale(self, n):
-        """
-        Scale all coordinates of the ThetaPoint by `n`
-        """
-        x, y, z, t = self.coords()
-        if not isinstance(n, RingElement):
-            raise ValueError(f"Cannot scale by element {n} of type {type(n)}")
-        scaled_coords = (n * x, n * y, n * z, n * t)
-        return self._parent(scaled_coords)
-
     def double_iter(self, m):
         """
         Compute [2^n] Self
@@ -267,33 +308,3 @@ class ThetaPoint(AdditiveGroupElement):
     def __imul__(self, m):
         self = self * m
         return self
-
-    def __eq__(self, other):
-        """
-        Check the quality of two ThetaPoints. Note that as this is a
-        projective equality, we must be careful for when certain coefficients may
-        be zero.
-        """
-        # TODO make the code general to any number of components
-        # TODO do we care about affine equality? 
-        #   or this _eq_ (maybe richcmp?) is just projective equality
-        #   and we rely on tuple equality for affine equality?
-        #   In this last case, new affine_eq function??
-        if not isinstance(other, ThetaPoint):
-            return False
-
-        a1, b1, c1, d1 = self.coords()
-        a2, b2, c2, d2 = other.coords()
-
-        if d1 != 0 or d2 != 0:
-            return all([a1 * d2 == a2 * d1, b1 * d2 == b2 * d1, c1 * d2 == c2 * d1])
-        elif c1 != 0 or c2 != 0:
-            return all([a1 * c2 == a2 * c1, b1 * c2 == b2 * c1])
-        elif b1 != 0 or b2 != 0:
-            return a1 * b2 == a2 * b1
-        else:
-            return True
-
-    def __repr__(self):
-        # TODO for consistency, just print the coordinates?
-        return f"Theta point with coordinates: {self.coords()}"
