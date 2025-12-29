@@ -1,11 +1,9 @@
 # Sage Imports
 from sage.all import (
     cached_method,
-    Integer,
-    HyperellipticCurve,
-    PolynomialRing,
     Parent,
-    UniqueRepresentation
+    UniqueRepresentation,
+    ZZ
 )
 
 from sage.structure.element import get_coercion_model, RingElement
@@ -20,6 +18,9 @@ from theta_point import ThetaPoint
 # How to put into classes? Kummer vs regular theta work differently
 # TODO projective points, projective equality&arithmetic vs affine(cubical) ? what do we do
 # TODO important: add support for dimension-1 theta structures for Elliptic curves / Kummer lines
+# TODO do we want to support batch inversion here in sage?
+# TODO credits: some code adapted from Pierrick Dartois's 4dim library https://github.com/Pierrick-Dartois/Theta_dim4
+#               main structure adapted from two-isogenies https://github.com/ThetaIsogenies/two-isogenies/tree/main/Theta-SageMath
 
 class ThetaStructure(Parent, UniqueRepresentation):
     """
@@ -73,29 +74,44 @@ class ThetaStructure(Parent, UniqueRepresentation):
 
 class ThetaStructure_level2(ThetaStructure):
     # TODO rename to Kummer? ThetaSurface? ...
-    # TODO are there actually any specific methods? if the only specific methods are in the points, still keep it?
     # TODO instead of an init in ThetaStructure, we'd actually need a constructor like EllipticCurve, right?
-    
-    #####################################################
-    ### dim-2 specific methods
-    #####################################################
-    
-    def hadamard(self):
-        # TODO keep?
-        # NOTE dim-2^n specific
-        """
-        Compute the Hadamard transformation of the theta null point of the theta structure
-        """
-        return self.null_point().hadamard()
+    _inv_null_point = None
+    _inv_null_point_dual_sq = None
 
-    def squared_theta(self):
-        # NOTE dim-2^n specific
-        # TODO generalize to twisted U_ii,ii coords
-        """
-        Square the coefficients and then compute the Hadamard transformation of
-        the theta null point of the theta structure
-        """
-        return self.null_point().squared_theta()
+    @staticmethod
+    def hadamard(coords):
+        coords = tuple(coords)
+
+        def _hadamard_rec(coords_rec):
+            if len(coords_rec) == 1:
+                return coords_rec
+            
+            mid = len(coords_rec // 2)
+            left = coords_rec[:mid]
+            right = coords_rec[mid:]
+
+            left = _hadamard_rec(left)
+            right = _hadamard_rec(right)
+
+            return tuple(x + y for x, y in zip(left, right)) + tuple(x - y for x, y in zip(left, right))
+        
+        return _hadamard_rec(coords)
+    
+    @staticmethod
+    def square_coords(coords):
+        return tuple(x * x for x in coords)
+
+    def arithmetic_precomputation(self):
+        if self._inv_null_point is None:
+            if any(not x for x in self.null_point()):
+                return NotImplementedError(f"zero coordinates in {self}. Try applying a symplectic basis transformation to be able to perform arithmetic")
+            self._inv_null_point = tuple(1/x for x in self._null_point)
+
+        if self._inv_null_point_dual_sq is None:
+            U_sq = self.hadamard(self.square_coords(self._null_point.coordinates()))
+            if any(not x for x in U_sq):
+                return NotImplementedError(f"zero coordinates in dual null point of {self}. Try applying a symplectic basis transformation to be able to perform arithmetic")
+            self._inv_null_point_dual_sq = tuple(1/x for x in U_sq)
 
     @staticmethod
     def hyperelliptic_curve_from_theta(J):
@@ -103,6 +119,8 @@ class ThetaStructure_level2(ThetaStructure):
         Convert a theta null point structure to an hyperelliptic curve
         """
         # TODO move to hyperelliptic curve class?
+        from sage.all import HyperellipticCurve, PolynomialRing
+
         if not isinstance(J, ThetaStructure):
             raise TypeError("J must be a 2-dimensional theta structure")
         if J.dimension() != 2:

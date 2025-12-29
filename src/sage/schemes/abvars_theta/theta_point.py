@@ -4,7 +4,7 @@ from sage.all import (
 )
 
 from sage.structure.element import Element, RingElement
-from theta_structure import ThetaStructure
+from theta_structure import ThetaStructure, ThetaStructure_level2
 from sage.structure.richcmp import richcmp_by_eq_and_lt
 
 # ======================================== #
@@ -106,157 +106,63 @@ class ThetaPoint_level2(ThetaPoint):
     differential addition, which like x-only points on the Kummer line, allows
     for scalar multiplication
     """
-
     @staticmethod
-    def to_hadamard(x_00, x_10, x_01, x_11):
-        """
-        Compute the Hadamard transformation of four coordinates, using recursive
-        formula.
-        """
-        # NOTE dim-2^n specific
-        # TODO keep? fuse with the .hadamard() method?
-        #      define this function recursively for real, inside the .hadamard() method?
-        x_00, x_10 = (x_00 + x_10, x_00 - x_10)
-        x_01, x_11 = (x_01 + x_11, x_01 - x_11)
-        return x_00 + x_01, x_10 + x_11, x_00 - x_01, x_10 - x_11
-
-    _hadamard = None
-    _squared_theta = None
-    # TODO can I really do that or should I wrap this into __init__?
+    def hadamard(*args, **kwds):
+        return ThetaStructure_level2.hadamard(*args, **kwds)
+    @staticmethod
+    def square_coords(*args, **kwds):
+        return ThetaStructure_level2.square_coords(*args, **kwds)
+    @staticmethod
+    def coordwise_multiply(first, second):
+        return tuple(x * y for x, y in zip(first, second))
+    @staticmethod
+    def coordwise_invert(coords):
+        return tuple(1/x for x in coords)
     
-    def hadamard(self):
-        """
-        Compute the Hadamard transformation of this element
-        """
-        # NOTE dim-2^n specific;
-        # TODO see notes in ThetaPoint.to_hadamard()
-        if self._hadamard is None:
-            self._hadamard = self.to_hadamard(*self.coords())
-        return self._hadamard
 
-    @staticmethod
-    def to_squared_theta(x, y, z, t):
-        """
-        Square the coordinates and then compute the Hadamard transform of the
-        input
-        """
-        # NOTE dim-2^n specific;
-        # TODO see notes in ThetaPoint.to_hadamard()
-        return ThetaPoint.to_hadamard(x * x, y * y, z * z, t * t)
-
-    def squared_theta(self):
-        """
-        Compute the Squared Theta transformation of this element
-        which is the square operator followed by Hadamard.
-        """
-        # NOTE dim-2^n specific;
-        # TODO see notes in ThetaPoint.to_hadamard()
-        # TODO generalize to twisted U_ii,ii coords
-        if self._squared_theta is None:
-            self._squared_theta = self.to_squared_theta(*self.coords())
-        return self._squared_theta
-
+    # TODO move arithmetic_computation in a flag? it's already just two boolean checks, so probably 't's ok
+    # TODO in this general formulation, double is really a special case of diff_add with no optimization. remove?
     def double(self):
         """
         Computes [2]*self
 
-        NOTE: Assumes that no coordinate is zero
-
-        Cost: 8S 6M
+        Reference: https://eprint.iacr.org/2024/1180.pdf, Appendix A
         """
-        # If a,b,c,d = 0, then the codomain of A->A/K_2 is a product of
-        # elliptic curves with a non product theta structure.
-        # Unless we are very unlucky, A/K_1 will not be in this case, so we
-        # just need to Hadamard, double, and Hadamard inverse
-        # If A,B,C,D=0 then the domain itself is a product of elliptic
-        # curves with a non product theta structure. The Hadamard transform
-        # will not change this, we need a symplectic change of variable
-        # that puts us back in a product theta structure
-        y0, z0, t0, Y0, Z0, T0 = self.parent()._arithmetic_precomputation()
+        self.parent()._arithmetic_precomputation()
+        inv_0 = self.parent()._inv_null_point
+        inv_U_sq = self.parent()._inv_null_point_dual_sq
 
-        # Temp coordinates
-        # Cost 8S 3M
-        xp, yp, zp, tp = self.squared_theta()
-        xp = xp**2
-        yp = Y0 * yp**2
-        zp = Z0 * zp**2
-        tp = T0 * tp**2
-
-        # Final coordinates
-        # Cost 3M
-        X, Y, Z, T = self.to_hadamard(xp, yp, zp, tp)
-        X = X
-        Y = y0 * Y
-        Z = z0 * Z
-        T = t0 * T
-
-        coords = (X, Y, Z, T)
-        return self._parent(coords)
-
-    def diff_addition(self, Q, PQ):
+        P = self.square_coords(self.hadamard(self.square_coords(self.coordinates())))
+        # TODO is there a less cumbersome syntax? I'd like to just call hadamard and square_coords as functions;
+        # I like them to be tied to the class instead of being global, but calling self.hadamard every time is also cumbersome...
+        P = self.coordwise_multiply(P, inv_U_sq)
+        P = self.hadamard(P)
+        P = self.coordwise_multiply(P, inv_0)
+        
+        return self.parent()(P)
+        
+        
+    def diff_addition(self, Q, PmQ, PmQ_is_inverse=False):
         """
         Given the theta points of P, Q and P-Q computes the theta point of
         P + Q.
 
-        NOTE: Assumes that no coordinate is zero
-
-        Cost: 8S 17M
+        if PmQ_is_inverse, PmQ contains the inverse coordinates of P-Q
+        otherwise, PmQ contains the coordinates of P-Q. The algorithm only uses the inverses.
         """
-        # Extract out the precomputations
-        Y0, Z0, T0 = self.parent()._arithmetic_precomputation()[-3:]
+        self.parent()._arithmetic_precomputation()
+        inv_U_sq = self.parent()._inv_null_point_dual_sq
 
-        # Transform with the Hadamard matrix and multiply
-        # Cost: 8S 7M
-        p1, p2, p3, p4 = self.squared_theta()
-        q1, q2, q3, q4 = Q.squared_theta()
+        P = self.hadamard(self.square_coords(self.coordinates()))
+        Q = self.hadamard(self.square_coords(Q))
+        R = self.coordwise_multiply(P, Q)
+        R = self.coordwise_multiply(R, inv_U_sq)
 
-        xp = p1 * q1
-        yp = Y0 * p2 * q2
-        zp = Z0 * p3 * q3
-        tp = T0 * p4 * q4
+        if not PmQ_is_inverse:
+            PmQ = self.coordwise_invert(PmQ)
 
-        # Final coordinates
-        PQx, PQy, PQz, PQt = PQ.coords()
-
-        # Note:
-        # We replace the four divisions by
-        # PQx, PQy, PQz, PQt by 10 multiplications
-        # Cost: 10M
-        PQxy = PQx * PQy
-        PQzt = PQz * PQt
-
-        # TODO self.to_hadamard is a weird syntax. use @classmethod or something?
-        X, Y, Z, T = self.to_hadamard(xp, yp, zp, tp)
-        X = X * PQzt * PQy
-        Y = Y * PQzt * PQx
-        Z = Z * PQxy * PQt
-        T = T * PQxy * PQz
-
-        coords = (X, Y, Z, T)
-        return self.parent()(coords)
-
-    def double_iter(self, m):
-        """
-        Compute [2^n] Self
-
-        NOTE: Assumes that no coordinate is zero at any point during the doubling
-        """
-        # TODO how to deal with the NOTE above? assumption that no zero coordinate is encountered?...
-        # TODO replace thing below by just m = Integer(m) and let sage do type checking?
-        # TODO make this function a special case of _mul_?
-        if not isinstance(m, Integer):
-            try:
-                m = Integer(m)
-            except:
-                raise TypeError(f"Cannot coerce input scalar {m = } to an integer")
-
-        if m.is_zero():
-            return self.parent().zero()
-
-        P1 = self
-        for _ in range(m):
-            P1 = P1.double()
-        return P1
+        R = self.coordwise_multiply(R, PmQ)
+        return R
 
     def __mul__(self, m):
         """
@@ -265,16 +171,11 @@ class ThetaPoint_level2(ThetaPoint):
         NOTE: Assumes that no coordinate is zero at any point during the doubling
         """
         # TODO how to deal with the NOTE above? assumption that no zero coordinate is encountered?...
-        # TODO replace thing below by just m = Integer(m) and let sage do type checking?
         # TODO integrate .double(), .double_iter() here?
         # TODO distinguish whether we're level-2 (Kummer) or higher level (full group law)
         
         # Make sure we're multiplying by something value
-        if not isinstance(m, (int, Integer)):
-            try:
-                m = Integer(m)
-            except:
-                raise TypeError(f"Cannot coerce input scalar {m = } to an integer")
+        m = Integer(m)
 
         # If m is zero, return the null point
         if not m:
@@ -283,11 +184,18 @@ class ThetaPoint_level2(ThetaPoint):
         # We are with ±1 identified, so we take the absolute value of m
         m = abs(m)
 
-        P0, P1 = self, self
+        ##### NOTE just added by ale:
+        # First perform a bulk of doublings, if possible.
+        # If m = 2^n, then we skip the subsequent Montgomery ladder
+        P0 = self
+        for _ in range(m.valuation(2) - 1):
+            P0 = P0.double()
+        m = m >> (m.valuation(2) - 1)
+        # TODO replace this by m.valuation(2) without -1: check ladder steps 
+        #############################
+        
+        P1 = P0
         P2 = P1.double()
-        # If we are multiplying by two, the chain stops here
-        if m == 2:
-            return P2
 
         # Montgomery double and add.
         for bit in bin(m)[3:]:
