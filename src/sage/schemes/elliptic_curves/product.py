@@ -38,6 +38,10 @@ AUTHORS:
 # - nicer error messages?
 # - setup all the #needs
 # - is the docstring style ok?
+# - instead of making EllipticProduct a globally available name, we could add a .product() method in EllipticCurves ???
+#   and only allow syntax like E.product(E').
+#   This way, this way of building arbitrary products: curves=..., EllipticProduct(curves)   wouldn't be allowed
+# - __init__ assumes that the curves were already unpacked in __classcall__. Leave __classcall__ generic with *args, **kwds and move unpacking to __init__?
 
 # for the future:
 # TODO integrate interface with category system: make EllipticProduct an abelian variety:
@@ -125,7 +129,7 @@ class EllipticProduct(Parent, UniqueRepresentation):
         ...
         TypeError: all of the given components should be defined over the same base ring
     """
-    @staticmethod
+    @classmethod
     def __classcall__(cls, *curves):
         r"""
         Construct a product of elliptic curves from its factors.
@@ -146,7 +150,7 @@ class EllipticProduct(Parent, UniqueRepresentation):
             sage: E0 = EllipticCurve(Fp2, [1,0])
             sage: E1 = E0.isogenies_prime_degree(2)[0].codomain()
             sage: A = EllipticProduct(E0, E1)
-            sage: A == EllipticProduct([EllipticCurve(j=E0.j_invariant()),
+            sage: A == EllipticProduct([EllipticCurve(E0.a_invariants()),
             ....:                       E1.identity_morphism().codomain()])
             True
 
@@ -291,6 +295,9 @@ class EllipticProduct(Parent, UniqueRepresentation):
             sage: E1 = E0.isogenies_prime_degree(2)[0].codomain()
             sage: A = EllipticProduct(E0, E1)
             sage: A == EllipticProduct([EllipticCurve(j=E0.j_invariant()),
+            ....:                       E1.identity_morphism().codomain()])
+            True
+            sage: A is EllipticProduct([EllipticCurve(j=E0.j_invariant()),
             ....:                       E1.identity_morphism().codomain()])
             True
             sage: A == (E0, E1)  # an elliptic curve product is not a tuple
