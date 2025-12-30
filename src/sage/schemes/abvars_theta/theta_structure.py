@@ -14,13 +14,14 @@ from theta_point import ThetaPoint
 #     Class for Theta Structure (level-2?)     #
 # ============================================ #
 
-# TODO a Kummer variety (level 2) has no group arithmetic --> diff_add and double() instead of just _add_
-# How to put into classes? Kummer vs regular theta work differently
 # TODO projective points, projective equality&arithmetic vs affine(cubical) ? what do we do
-# TODO important: add support for dimension-1 theta structures for Elliptic curves / Kummer lines
+# TODO add support for dimension-1 x-only elliptic curves (kummer lines with usual ell curves)?
 # TODO do we want to support batch inversion here in sage?
 # TODO credits: some code adapted from Pierrick Dartois's 4dim library https://github.com/Pierrick-Dartois/Theta_dim4
 #               main structure adapted from two-isogenies https://github.com/ThetaIsogenies/two-isogenies/tree/main/Theta-SageMath
+# TODO decide whether to create a product-of-theta-structure class
+# TODO decide how to manage changes of model: curve <-> theta, tuple-of-theta-structures <-> product-theta-structrure
+#   (just callable conversion functions? isomorphism class? change-of-model class?)
 
 class ThetaStructure(Parent, UniqueRepresentation):
     """
@@ -117,7 +118,10 @@ class ThetaStructure(Parent, UniqueRepresentation):
                 #      transform in simple check?
                 points_coords = tuple(factor(point).coordinates() for factor, point in zip(factors, points))
                 return thetastr(segre(points_coords))
-            return thetastr, _morphism        
+            return thetastr, _morphism
+
+    def is_split(self):
+        raise NotImplementedError("check only available for dim-2 level-2 theta structures")
 
 class ThetaStructure_level2(ThetaStructure):
     # TODO rename to Kummer? ThetaSurface? ...
@@ -159,7 +163,7 @@ class ThetaStructure_level2(ThetaStructure):
         # NOTE assumes coords is an iterable
         # NOTE parent just for debugging purposes
         if any(not x for x in coords):
-            return NotImplementedError(f"division by zero as arithmetic on {parent} tried to invert point {coords}. Try applying manually a symplectic basis transformation")
+            raise NotImplementedError(f"division by zero as arithmetic on {parent} tried to invert point {coords}. Try applying manually a symplectic basis transformation")
         return tuple(1/x for x in coords)
     
     @staticmethod
@@ -175,6 +179,8 @@ class ThetaStructure_level2(ThetaStructure):
             U_sq = self.hadamard(self.square_coords(self._null_point.coordinates()))
             self._inv_null_point_dual_sq = self.coordwise_invert(U_sq, parent=self)
 
+    # TODO move the following two methods to class ThetaStructure?
+    # interface ThetaStructure.from_curve sounds prettier than with _level2 (but maybe too general?)
     @staticmethod
     def from_curve(curve, with_morphism=False):
         A = curve.montgomery_model().a2()
@@ -202,15 +208,15 @@ class ThetaStructure_level2(ThetaStructure):
         if not with_morphism:
             return thetastr
         else:
-            def _morphism(point, *, coords_x_only=False):
-                if not coords_x_only:
+            def _morphism(point, *, domain_is_x_only=False):
+                if not domain_is_x_only:
                     if point.is_zero():
                         point = (curve.base_ring()(1), curve.base_ring()(0))
                     else:
                         point = (curve(point)[0], curve(point)[2])
                 
-                X, Z = tuple(point)
                 a, b = null_point
+                X, Z = tuple(point)
                 if not curve.is_x_coord(X/Z):
                     raise ValueError("given x, z coordinates must lie on given curve")
                 
@@ -218,7 +224,9 @@ class ThetaStructure_level2(ThetaStructure):
                 
             return thetastr, _morphism
 
-    
+    # TODO replace curves with EllipticProduct!!!
+    # TODO create a product-of-theta-structures class? would make sense with the morphisms and for consistency with elliptic product;
+    #       its main functionality would be handling gluing and splitting
     @classmethod
     def from_curves(cls, curves, with_morphism=False):
         # TODO support curves as multiple parameters
@@ -237,16 +245,142 @@ class ThetaStructure_level2(ThetaStructure):
             )))
             thetastr, factors_to_prod = cls.from_factors(factors, with_morphism=True)
 
-            def _morphism(points, *, coords_x_only=False):
+            def _morphism(points, *, domain_is_x_only=False):
                 # TODO coercion then coordinate extraction does the necessary checks but might be inefficient;
                 #      transform in simple check?
                 theta_points = tuple(
-                    curve_to_theta(curve, point, coords_x_only=coords_x_only)
+                    curve_to_theta(curve, point, domain_is_x_only=domain_is_x_only)
                     for curve, point, curve_to_theta in zip(curves, points, curve_to_theta_morphisms)
                 )
                 return factors_to_prod(theta_points)
             
             return thetastr, _morphism
+        
+    def _level_22_constants_sqr(self, i, j):
+        # TODO make it a vector instead of a function of i, j?
+        """
+        U_i,j
+        https://eprint.iacr.org/2023/1747.pdf page 17, NOTE the formula is only true for P=0
+        https://sferl.github.io/files/pdf_master_thesis.pdf formula (3.6) is correct TODO search reference in Damien's thesis
+        """
+        character = bin(i & j)[2:].count('1') % 2  # scalar product between bin(i) and bin(j)
+        ret = sum(
+            (-1)**character * self._null_point[t] * self._null_point[t ^ j]
+            for t in range(2 ** self.dimension())
+        )
+        return ret
+
+    def is_split(self):
+        """
+        https://eprint.iacr.org/2023/1747.pdf page 17, Dupont's thesis as a big reference
+        """
+        return any(not self._level_22_constants_sqr(i, j)
+                   for i in range(2 ** self.dimension())
+                   for j in range(2 ** self.dimension())
+                   if bin(i & j)[2:].count('1') % 2 == 0)
+    
+    def split_into_theta_factors(self, with_morphism=False):
+        if self.dimension() != 2:
+            raise NotImplementedError("splitting only available in dimension 2")
+        if not self.is_split():
+            raise ValueError("given theta structure is not isomorphic to a product of elliptic curves")
+        
+        split_idx = next(
+            (i, j)
+            for i in range(2 ** self.dimension())
+            for j in range(2 ** self.dimension())
+            if bin(i & j)[2:].count('1') % 2 == 0 and self._level_22_constants_sqr(i, j) == 0
+        )
+        # TODO apply change of basis, to make sure split_idx == (3, 3)
+        if split_idx != (3, 3):
+            raise NotImplementedError("symplectic change of basis not implemented yet")
+        
+        def inv_segre(coords):
+            # TODO generalize to higher dimension
+            a, b, _, d = coords
+            return (a, b), (b, d)
+        
+        theta_curves_null_points = inv_segre(self._null_point)
+        theta_curves = tuple(ThetaStructure_level2(np, dimension=1) for np in theta_curves_null_points)
+
+        if not with_morphism:
+            return theta_curves
+        else:
+            def _morphism(coords):
+                split_points = inv_segre(coords)
+                return tuple(curve(point) for curve, point in zip(theta_curves, split_points))
+            
+            return theta_curves, _morphism
+        
+    def to_elliptic(self, with_morphism=False):
+        # TODO rename to to_elliptic_curve?
+        if self.dimension() != 1:
+            raise TypeError("given theta structure must be of dimension 1")
+        
+        from sage.all import EllipticCurve
+        
+        a, b = self._null_point
+
+        aa = a**2
+        bb = b**2
+
+        T1 = aa + bb
+        T2 = aa - bb
+
+        # Montgomery coefficient
+        A = -(T1**2 + T2**2) / (T1 * T2)
+
+        # Construct curve
+        F = a.parent()
+        E = EllipticCurve(F, [0, A, 0, 1, 0])
+
+        if not with_morphism:
+            return E
+        else:
+            def _morphism(coords, x_only=True):
+                a, b = self._null_point  # FIXME redundant line, re-written here for better debugging
+                U, V = coords
+                X = a*V + b*U
+                Z = a*V - b*U
+
+                # TODO remove assertion
+                assert E.is_x_coord(X/Z)
+                
+                if x_only:
+                    return X, Z
+                else:
+                    return E.lift_x(X/Z)
+
+        return E, _morphism
+
+    to_montgomery = to_elliptic
+        
+    def split_into_curves(self, with_morphism=False):
+        from sage.schemes.elliptic_curves.product import EllipticProduct
+        if not with_morphism:
+            factors = self.split_into_theta_factors(with_morphism=False)
+            # FIXME what's wrong with the compiler here? says types are not correct
+            curves = tuple(factor.to_elliptic() for factor in factors) # type: ignore    
+            return EllipticProduct(curves)
+        
+        else:
+            factors, prod_to_factors = self.split_into_theta_factors(with_morphism=True)
+            curves, theta_to_curve_morphisms = (zip(*(
+                factor.to_elliptic(with_morphism=True)
+                for factor in factors
+            )))
+            ell_prod = EllipticProduct(curves)
+            
+            def _morphism(coords, x_only=True):
+                split_theta_points = prod_to_factors(coords)
+                ell_points = tuple(morphism(point, x_only=x_only)
+                                   for morphism, point in zip(theta_to_curve_morphisms, split_theta_points))
+                if x_only:
+                    return ell_points  # a tuple of (X, Z) coordinates
+                else:
+                    return ell_prod(ell_points)  # EllipticProductPoint
+            
+            return ell_prod, _morphism
 
     @staticmethod
     def hyperelliptic_curve_from_theta(J):
@@ -260,8 +394,10 @@ class ThetaStructure_level2(ThetaStructure):
             raise TypeError("J must be a theta structure")
         if J.dimension() != 2:
             raise ValueError("theta structure must be of dimension 2")
+        if J.is_split():
+            raise ValueError("given theta structure is not isomorphic to a hyperelliptic Jacobian")
         if J.level != 2:
-            raise NotImplementedError("conversion to hyperelliptic curve only available from non-split dim-2 theta structures of level 2")
+            raise NotImplementedError("conversion to hyperelliptic curve only available from theta structures of level 2")
         
         # TODO check if split, only keep going if not
         #############################

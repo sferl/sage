@@ -19,6 +19,8 @@ from sage.structure.richcmp import richcmp_by_eq_and_lt
 
 class ThetaPoint(Element):
     def __init__(self, parent, coords):
+        # TODO support calling with several arguments?
+        # TODO check validity of a theta point on a given parent? like is_x_coordinate on elliptic curves
         super().__init__(parent)
 
         if coords == 0:
@@ -29,7 +31,6 @@ class ThetaPoint(Element):
             raise ValueError("projective point cannot must have at least one nonzero coordinate")
         
         self._coords = coords
-        # TODO support calling with several arguments?
     
     def coordinates(self):
         """
