@@ -80,6 +80,45 @@ class ThetaStructure(Parent, UniqueRepresentation):
 
     def __repr__(self):
         return f"Theta structure over {self.base_ring()} with null point: {self.null_point()}"
+    
+    @classmethod
+    def from_factors(cls, factors, *, with_morphism=False):
+        # TODO support factors as multiple parameters
+        # TODO make sure it makes sense as class method
+        #       example: affine theta structure from factors should return an affine theta structure,
+        #                or kummer variety should return kummer variety
+        #      NOTE for that, we need that the __classcall__ or __init__ methods have compatible interface
+        # TODO check python closures. for sure there will be some crazy bug going on there
+        if any(not isinstance(factor, ThetaStructure) or factor.level() != factors[0].level()
+               for factor in factors):
+            raise TypeError("factors must be theta structures of the same level")
+        dim = sum(factor.dimension() for factor in factors)
+        lev = factors[0].level()
+
+        null_points = tuple(factor.null_point() for factor in factors)
+
+        def segre(points):
+            # NOTE assumes points is a tuple
+            import itertools
+            from sage.all import prod    
+            
+            # one-liner for the Segre embedding
+            ret = tuple(prod(combination) for combination in itertools.product(*points))
+
+            return ret
+        
+        null_point = segre(null_points)
+        thetastr = cls(null_point, dimension=dim, level=lev)
+        
+        if not with_morphism:
+            return thetastr
+        else:
+            def _morphism(points):
+                # TODO coercion then coordinate extraction does the necessary checks but might be inefficient;
+                #      transform in simple check?
+                points_coords = tuple(factor(point).coordinates() for factor, point in zip(factors, points))
+                return thetastr(segre(points_coords))
+            return thetastr, _morphism        
 
 class ThetaStructure_level2(ThetaStructure):
     # TODO rename to Kummer? ThetaSurface? ...
@@ -136,6 +175,79 @@ class ThetaStructure_level2(ThetaStructure):
         if self._inv_null_point_dual_sq is None:
             U_sq = self.hadamard(self.square_coords(self._null_point.coordinates()))
             self._inv_null_point_dual_sq = self.coordwise_invert(U_sq, parent=self)
+
+    @staticmethod
+    def from_curve(curve, with_morphism=False):
+        A = curve.montgomery_model().a2()
+        
+        # alpha is a root of x^2 + Ax + 1
+        try:
+            from sage.all import PolynomialRing
+            _, x = PolynomialRing(A.parent(), name="x").objgen()
+            alpha = (x**2 + A*x + 1).any_root()
+        except ValueError:
+            # TODO really catch this error? or let it slip in the root finding?
+            raise ValueError("cannot convert Montgomery model to theta")
+
+        # The theta coordinates a^2 and b^2 are related to alpha
+        aa = alpha + 1
+        bb = alpha - 1
+
+        ab = (aa * bb).sqrt()
+        # We aren't given (a,b) rational, but
+        # (a/b) is rational so we use
+        # (ab : b^2) as the theta null point
+        null_point = (ab, bb)
+        thetastr = ThetaStructure_level2(null_point, dimension=1)
+        
+        if not with_morphism:
+            return thetastr
+        else:
+            def _morphism(point, *, coords_x_only=False):
+                if not coords_x_only:
+                    if point.is_zero():
+                        point = (curve.base_ring()(1), curve.base_ring()(0))
+                    else:
+                        point = (curve(point)[0], curve(point)[2])
+                
+                X, Z = tuple(point)
+                a, b = null_point
+                if not curve.is_x_coord(X/Z):
+                    raise ValueError("given x, z coordinates must lie on given curve")
+                
+                return thetastr((a * (X - Z), b * (X + Z)))
+                
+            return thetastr, _morphism
+
+    
+    @classmethod
+    def from_curves(cls, curves, with_morphism=False):
+        # TODO support curves as multiple parameters
+        # TODO I'm afraid closures will make a mess. What's the correct interface for these changes of model?
+        from sage.schemes.elliptic_curves.ell_generic import EllipticCurve_generic
+        if any(not isinstance(curve, EllipticCurve_generic) for curve in curves):
+            raise TypeError("factors should be instances of an elliptic curve class")
+
+        if not with_morphism:
+            factors = tuple(ThetaStructure_level2.from_curve(curve) for curve in curves)
+            return cls.from_factors(factors)
+        else:
+            factors, curve_to_theta_morphisms = (zip(*(
+                cls.from_curve(curve, with_morphism=True)
+                for curve in curves
+            )))
+            thetastr, factors_to_prod = cls.from_factors(factors, with_morphism=True)
+
+            def _morphism(points, *, coords_x_only=False):
+                # TODO coercion then coordinate extraction does the necessary checks but might be inefficient;
+                #      transform in simple check?
+                theta_points = tuple(
+                    curve_to_theta(curve, point, coords_x_only=coords_x_only)
+                    for curve, point, curve_to_theta in zip(curves, points, curve_to_theta_morphisms)
+                )
+                return factors_to_prod(theta_points)
+            
+            return thetastr, _morphism
 
     @staticmethod
     def hyperelliptic_curve_from_theta(J):
