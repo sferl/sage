@@ -102,12 +102,8 @@ class ThetaStructure(Parent, UniqueRepresentation):
             import itertools
             from sage.all import prod    
             
-            # one-liner for the Segre embedding
-            ret = tuple(prod(combination) for combination in itertools.product(*points))
-            # FIXME the two-isogeny library and the relative papers use a different ordering
-            # in a 1x1 = 2dim product, the embedding goes (x:y),(z,w) -> (xz, yz, xw, yw)
-            # consequences on gluing and splitting!
- 
+            # one-liner for the Segre embedding, in the same ordering used by two-isogenies
+            ret = tuple(prod(combination) for combination in itertools.product(*(points[::-1])))
             return ret
         
         null_point = segre(null_points)
