@@ -104,7 +104,10 @@ class ThetaStructure(Parent, UniqueRepresentation):
             
             # one-liner for the Segre embedding
             ret = tuple(prod(combination) for combination in itertools.product(*points))
-
+            # FIXME the two-isogeny library and the relative papers use a different ordering
+            # in a 1x1 = 2dim product, the embedding goes (x:y),(z,w) -> (xz, yz, xw, yw)
+            # consequences on gluing and splitting!
+ 
             return ret
         
         null_point = segre(null_points)
@@ -258,7 +261,7 @@ class ThetaStructure_level2(ThetaStructure):
         from sage.all import HyperellipticCurve, PolynomialRing
 
         if not isinstance(J, ThetaStructure):
-            raise TypeError("J must be a 2-dimensional theta structure")
+            raise TypeError("J must be a theta structure")
         if J.dimension() != 2:
             raise ValueError("theta structure must be of dimension 2")
         if J.level != 2:
