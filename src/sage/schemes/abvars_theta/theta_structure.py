@@ -98,20 +98,30 @@ class ThetaStructure_level2(ThetaStructure):
         return _hadamard_rec(coords)
     
     @staticmethod
-    def square_coords(coords):
+    def coordwise_square(coords):
+        # NOTE assumes coords is an iterable
         return tuple(x * x for x in coords)
+    
+    @staticmethod
+    def coordwise_invert(coords, parent=None):
+        # NOTE assumes coords is an iterable
+        # NOTE parent just for debugging purposes
+        if any(not x for x in coords):
+            return NotImplementedError(f"division by zero as arithmetic on {parent} tried to invert point {coords}. Try applying manually a symplectic basis transformation")
+        return tuple(1/x for x in coords)
+    
+    @staticmethod
+    def coordwise_multiply(coords_1, coords_2):
+        # NOTE assumes coords_i is an iterable of coordinates
+        return tuple(x * y for x, y in zip(coords_1, coords_2))
 
     def arithmetic_precomputation(self):
         if self._inv_null_point is None:
-            if any(not x for x in self.null_point()):
-                return NotImplementedError(f"zero coordinates in {self}. Try applying a symplectic basis transformation to be able to perform arithmetic")
-            self._inv_null_point = tuple(1/x for x in self._null_point)
+            self._inv_null_point = self.coordwise_invert(self._null_point.coordinates(), parent=self)
 
         if self._inv_null_point_dual_sq is None:
             U_sq = self.hadamard(self.square_coords(self._null_point.coordinates()))
-            if any(not x for x in U_sq):
-                return NotImplementedError(f"zero coordinates in dual null point of {self}. Try applying a symplectic basis transformation to be able to perform arithmetic")
-            self._inv_null_point_dual_sq = tuple(1/x for x in U_sq)
+            self._inv_null_point_dual_sq = self.coordwise_invert(U_sq, parent=self)
 
     @staticmethod
     def hyperelliptic_curve_from_theta(J):

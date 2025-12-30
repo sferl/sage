@@ -115,13 +115,13 @@ class ThetaPoint_level2(ThetaPoint):
     def square_coords(*args, **kwds):
         return ThetaStructure_level2.square_coords(*args, **kwds)
     @staticmethod
-    def coordwise_multiply(first, second):
-        return tuple(x * y for x, y in zip(first, second))
+    def coordwise_multiply(*args, **kwds):
+        return ThetaStructure_level2.coordwise_multiply(*args, **kwds)
     @staticmethod
-    def coordwise_invert(coords):
-        return tuple(1/x for x in coords)
+    def coordwise_invert(*args, **kwds):
+        # NOTE throws an error in case of division by 0
+        return ThetaStructure_level2.coordwise_invert(*args, **kwds)
     
-
     # TODO move arithmetic_computation in a flag? it's already just two boolean checks, so probably 't's ok
     # TODO in this general formulation, double is really a special case of diff_add with no optimization. remove?
     def double(self):
@@ -162,9 +162,7 @@ class ThetaPoint_level2(ThetaPoint):
 
         PmQ = tuple(PmQ)
         if not PmQ_is_inverse:
-            if any(not x for x in PmQ):
-                raise NotImplementedError(f"zero coordinates in point {PmQ}. Try applying a symplectic basis transformation to be able to perform arithmetic")
-            PmQ = self.coordwise_invert(PmQ)
+            PmQ = self.coordwise_invert(PmQ, parent=self.parent())
 
         R = self.coordwise_multiply(R, PmQ)
         return R
@@ -205,9 +203,7 @@ class ThetaPoint_level2(ThetaPoint):
         
         P1 = P0
         P2 = P1.double()
-        if any(not x for x in P0):
-            raise NotImplementedError(f"zero coordinates found. try symplectic transfomration on the theta structure {self.parent()}")
-        P0inv = self.coordwise_invert(P0.coordinates())
+        P0inv = self.coordwise_invert(P0.coordinates(), parent=self.parent())
 
         # Montgomery double and add.
         for bit in bin(m)[3:]:
