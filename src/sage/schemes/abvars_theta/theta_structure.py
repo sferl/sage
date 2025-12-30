@@ -39,9 +39,10 @@ class ThetaStructure(Parent, UniqueRepresentation):
 
         Method used for compatibility with UniqueRepresentation.
         """
-        return super().__classcall__(cls, *args, **kwds)
+        return super().__classcall__(*args, **kwds)
 
     def __init__(self, null_point, *, dimension=2, level=2):
+        # TODO build a constructor that returns either a thing of level 2 or a thing of higher level
         if dimension not in (1, 2) or level != 2:
             raise NotImplementedError("theta structures for abelian varieties currently only supported in dimension <=2 and level 2")
         
@@ -50,10 +51,18 @@ class ThetaStructure(Parent, UniqueRepresentation):
         null_point = tuple(null_point)  # throw error if not meaningful iterable
         if len(null_point) != level**dimension:
             raise ValueError(f"null point should have {level**dimension} coordinates")
+        self._level = ZZ(level)
+        self._dimension = ZZ(dimension)
 
         self._base_ring = cm.common_parent(*(c.parent() for c in null_point))
 
         self._null_point = self._point(self, null_point)
+
+    def dimension(self):
+        return self._dimension
+    
+    def level(self):
+        return self._level
 
     def zero(self):
         """
@@ -75,8 +84,13 @@ class ThetaStructure(Parent, UniqueRepresentation):
 class ThetaStructure_level2(ThetaStructure):
     # TODO rename to Kummer? ThetaSurface? ...
     # TODO instead of an init in ThetaStructure, we'd actually need a constructor like EllipticCurve, right?
-    _inv_null_point = None
-    _inv_null_point_dual_sq = None
+    # TODO is __init__ overridden like this correct? what about __classcall__ inheritance...?
+    def __init__(self, null_point, *, dimension=1, level=2):
+        if level != 2:
+            raise ValueError("level must be 2")
+        super().__init__(null_point, dimension=dimension, level=2)
+        self._inv_null_point = None
+        self._inv_null_point_dual_sq = None
 
     @staticmethod
     def hadamard(coords):
@@ -164,8 +178,7 @@ class ThetaStructure_level2(ThetaStructure):
         except Exception as e:
             raise ValueError(f"Conversion to rosenhain failed because of: {e}")
 
-        R = PolynomialRing(J.base_ring(), name="x")
-        x = R.gens()[0]
+        _, x = PolynomialRing(J.base_ring(), name="x").objgen()
 
         f_poly = x * (x - 1) * (x - lam) * (x - mu) * (x - nu)
 

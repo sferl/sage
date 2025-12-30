@@ -108,6 +108,8 @@ class ThetaPoint_level2(ThetaPoint):
     differential addition, which like x-only points on the Kummer line, allows
     for scalar multiplication
     """
+
+    # TODO what's the best way/place to put these static methods?
     @staticmethod
     def hadamard(*args, **kwds):
         return ThetaStructure_level2.hadamard(*args, **kwds)
