@@ -32,16 +32,6 @@ class ThetaStructure(Parent, UniqueRepresentation):
     _point = ThetaPoint
     _element_constructor_ = _point
 
-    @classmethod
-    def __classcall__(cls, *args, **kwds):
-        r"""
-        Construct a theta structure of a given dimension and level from its
-        null point (the coordinates of the additive identity).
-
-        Method used for compatibility with UniqueRepresentation.
-        """
-        return super().__classcall__(*args, **kwds)
-
     def __init__(self, null_point, *, dimension=2, level=2):
         # TODO build a constructor that returns either a thing of level 2 or a thing of higher level
         if dimension not in (1, 2) or level != 2:
@@ -166,7 +156,7 @@ class ThetaStructure_level2(ThetaStructure):
         # NOTE parent just for debugging purposes
         if any(not x for x in coords):
             raise NotImplementedError(f"division by zero as arithmetic on {parent} tried to invert point {coords}. Try applying manually a symplectic basis transformation")
-        return tuple(1/x for x in coords)
+        return tuple(~x for x in coords)
     
     @staticmethod
     def coordwise_multiply(coords_1, coords_2):
@@ -396,7 +386,7 @@ class ThetaStructure_level2(ThetaStructure):
         if not isinstance(J, ThetaStructure):
             raise TypeError("J must be a theta structure")
         if J.dimension() != 2:
-            raise ValueError("theta structure must be of dimension 2")
+            raise NotImplementedError("theta structure must be of dimension 2")
         if J.is_split():
             raise ValueError("given theta structure is not isomorphic to a hyperelliptic Jacobian")
         if J.level != 2:
