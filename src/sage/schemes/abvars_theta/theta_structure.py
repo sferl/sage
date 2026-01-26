@@ -15,13 +15,13 @@ from theta_point import ThetaPoint
 # ============================================ #
 
 # TODO projective points, projective equality&arithmetic vs affine(cubical) ? what do we do
-# TODO add support for dimension-1 x-only elliptic curves (kummer lines with usual ell curves)?
 # TODO do we want to support batch inversion here in sage?
 # TODO credits: some code adapted from Pierrick Dartois's 4dim library https://github.com/Pierrick-Dartois/Theta_dim4
 #               main structure adapted from two-isogenies https://github.com/ThetaIsogenies/two-isogenies/tree/main/Theta-SageMath
-# TODO decide whether to create a product-of-theta-structure class
-# TODO decide how to manage changes of model: curve <-> theta, tuple-of-theta-structures <-> product-theta-structrure
-#   (just callable conversion functions? isomorphism class? change-of-model class?)
+# TODO create a product-of-theta-structure class
+# TODO type change of model (ell curve or kummer line into theta) as Morphism
+# TODO have classes for a kummer line?
+
 
 class ThetaStructure(Parent, UniqueRepresentation):
     """
@@ -113,6 +113,7 @@ class ThetaStructure(Parent, UniqueRepresentation):
         if not with_morphism:
             return thetastr
         else:
+            # TODO morphism as function
             def _morphism(points):
                 # TODO coercion then coordinate extraction does the necessary checks but might be inefficient;
                 #      transform in simple check?
@@ -153,6 +154,7 @@ class ThetaStructure_level2(ThetaStructure):
         
         return _hadamard_rec(coords)
     
+    # TODO put these funs out of the class
     @staticmethod
     def coordwise_square(coords):
         # NOTE assumes coords is an iterable
@@ -209,6 +211,7 @@ class ThetaStructure_level2(ThetaStructure):
             return thetastr
         else:
             def _morphism(point, *, domain_is_x_only=False):
+                # TODO compose with the iso from given curve to montgomery...
                 if not domain_is_x_only:
                     if point.is_zero():
                         point = (curve.base_ring()(1), curve.base_ring()(0))
@@ -434,3 +437,5 @@ class ThetaStructure_level2(ThetaStructure):
         except:
             raise ValueError("Converted curve is not a hyperelliptic curve")
         return H
+    
+    # TODO from_hyperelliptic

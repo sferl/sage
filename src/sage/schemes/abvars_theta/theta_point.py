@@ -81,7 +81,7 @@ class ThetaPoint(Element):
         projective equality, we must be careful for when certain coefficients may
         be zero.
         """
-        # TODO make the code general to any number of components
+        # TODO use ProjectiveSpace_point?
         if not isinstance(other, self.parent()._point):
             return NotImplemented
         if (self.parent().dimension(), self.parent().level()) != \
