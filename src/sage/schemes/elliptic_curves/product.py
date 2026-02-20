@@ -107,9 +107,9 @@ class EllipticProduct(Parent, UniqueRepresentation):
     call the class constructor with the desired curves (i.e., the factors
     of the product) as arguments::
 
-            sage: E0 = EllipticCurve(ZZ, [1,0])
-            sage: E1 = EllipticCurve(ZZ, [2,3])
-            sage: A = EllipticProduct(E0, E1, E1, E0)
+        sage: E0 = EllipticCurve(ZZ, [1,0])
+        sage: E1 = EllipticCurve(ZZ, [2,3])
+        sage: A = EllipticProduct(E0, E1, E1, E0)
 
     The arguments can also be passed as a single tuple or list::
         
@@ -220,9 +220,11 @@ class EllipticProduct(Parent, UniqueRepresentation):
         EXAMPLES::
 
             sage: F = GF(62207)
-            sage: E0 = EllipticCurve(j=F(1728)); E1 = EllipticCurve(j=F(0))
+            sage: E0 = EllipticCurve(j=F(1728))
+            sage: E1 = EllipticCurve(j=F(0))
             sage: A = EllipticProduct([E0, E1]); A.factors()
-            (Elliptic Curve defined by y^2 = x^3 + x over Finite Field of size 62207, Elliptic Curve defined by y^2 = x^3 + 1 over Finite Field of size 62207)
+            (Elliptic Curve defined by y^2 = x^3 + x over Finite Field of size 62207,
+             Elliptic Curve defined by y^2 = x^3 + 1 over Finite Field of size 62207)
         """
         return self._factors  # that's fine because self._factors is a tuple
     
@@ -236,7 +238,8 @@ class EllipticProduct(Parent, UniqueRepresentation):
 
         EXAMPLES::
 
-            sage: p = random_prime(2, 1000); F = QuadraticField(-p)
+            sage: p = random_prime(2, 1000)
+            sage: F = QuadraticField(-p)
             sage: E0 = EllipticCurve(j=F(0))
             sage: E1 = EllipticCurve(j=F(1))
             sage: A = EllipticProduct(E0, E0, E0, E1, E0)
@@ -257,7 +260,8 @@ class EllipticProduct(Parent, UniqueRepresentation):
 
         EXAMPLES::
 
-            sage: p = random_prime(2, 1000); F = GF(p)
+            sage: p = random_prime(2, 1000)
+            sage: F = GF(p)
             sage: A = EllipticProduct(
             ....:         EllipticCurve(j=F(0)),
             ....:         EllipticCurve(j=F(1)),
@@ -317,7 +321,8 @@ class EllipticProduct(Parent, UniqueRepresentation):
 
         EXAMPLES::
 
-            sage: p = random_prime(2, 1000); F = GF(p)
+            sage: p = random_prime(2, 1000)
+            sage: F = GF(p)
             sage: E0 = EllipticCurve(j=F(0))
             sage: E1 = EllipticCurve(j=F(1))
             sage: A = EllipticProduct(E1, E1); A.dimension()
@@ -335,7 +340,8 @@ class EllipticProduct(Parent, UniqueRepresentation):
 
         EXAMPLES::
 
-            sage: p = 167; F = Qp(p, prec=20)
+            sage: p = 167
+            sage: F = Qp(p, prec=20)
             sage: E = EllipticCurve(j=F(0))
             sage: A = EllipticProduct(E, E, E); A.base_ring()
             167-adic Field with capped relative precision 20
@@ -353,7 +359,8 @@ class EllipticProduct(Parent, UniqueRepresentation):
 
         EXAMPLES::
 
-            sage: p = 167; F = GF(p)
+            sage: p = 167
+            sage: F = GF(p)
             sage: E = EllipticCurve(j=F(0))
             sage: A = EllipticProduct(E, E, E); A.base_field()
             Finite Field of size 167
@@ -503,7 +510,8 @@ class EllipticProductPoint(AdditiveGroupElement):
         EXAMPLES::
 
             sage: F = GF(62207)
-            sage: E0 = EllipticCurve(j=F(1728)); E1 = EllipticCurve(j=F(0))
+            sage: E0 = EllipticCurve(j=F(1728))
+            sage: E1 = EllipticCurve(j=F(0))
             sage: A = EllipticProduct([E0, E1])
             sage: P = A(0, E1.lift_x(1)); P.components()
             ((0 : 1 : 0), (1 : 25309 : 1))
@@ -517,7 +525,8 @@ class EllipticProductPoint(AdditiveGroupElement):
         EXAMPLES::
             
             sage: F = GF(62207)
-            sage: E0 = EllipticCurve(j=F(1728)); E1 = EllipticCurve(j=F(0))
+            sage: E0 = EllipticCurve(j=F(1728))
+            sage: E1 = EllipticCurve(j=F(0))
             sage: A = EllipticProduct([E0, E1])
             sage: P = A(0, E1.lift_x(1)); P
             ((0 : 1 : 0), (1 : 25309 : 1))
@@ -553,9 +562,11 @@ class EllipticProductPoint(AdditiveGroupElement):
 
         EXAMPLES::
 
-            sage: F = QuadraticField(607); E0 = EllipticCurve(j=F(0))
+            sage: F = QuadraticField(607)
+            sage: E0 = EllipticCurve(j=F(0))
             sage: A = EllipticProduct(E0, E0, E0)
-            sage: P = E0((2,3,1)); Q = E0((-1,0,1))
+            sage: P = E0((2,3,1))
+            sage: Q = E0((-1,0,1))
             sage: PP = A([P, P, Q])
             sage: [R == P for R in PP]
             [True, True, False]    
@@ -568,7 +579,8 @@ class EllipticProductPoint(AdditiveGroupElement):
 
         EXAMPLES::
 
-            sage: F = Zmod(75); E = EllipticCurve(F, [42, 42])
+            sage: F = Zmod(75)
+            sage: E = EllipticCurve(F, [42, 42])
             sage: A = EllipticProduct(E, E, E)
             sage: P = E((4,7,1))
             sage: PP = A(P, 0, P)
@@ -595,7 +607,8 @@ class EllipticProductPoint(AdditiveGroupElement):
 
         EXAMPLES::
 
-            sage: F = Zmod(100); E0 = EllipticCurve([42, 42])
+            sage: F = Zmod(100)
+            sage: E0 = EllipticCurve([42, 42])
             sage: A = EllipticProduct(E0, E0, E0)
             sage: PP = A(0,0,0)
             sage: PP == A(E0(0), (0,1,0), 0)
@@ -612,7 +625,8 @@ class EllipticProductPoint(AdditiveGroupElement):
 
         EXAMPLES::
 
-            sage: F = Zmod(75); E = EllipticCurve(F, [42, 42])
+            sage: F = Zmod(75)
+            sage: E = EllipticCurve(F, [42, 42])
             sage: A = EllipticProduct(E, E)
             sage: P = E((4,7,1))
             sage: [bool(R) for R in (A(0, P), (A(0, 0)))]
@@ -630,7 +644,8 @@ class EllipticProductPoint(AdditiveGroupElement):
 
         EXAMPLES::
 
-            sage: F = Qp(167, prec=20); E = EllipticCurve(j=F(0))
+            sage: F = Qp(167, prec=20)
+            sage: E = EllipticCurve(j=F(0))
             sage: A = EllipticProduct(E, E, E);
             sage: P = E.lift_x(1)
             sage: PP = A(P, 0, P); PP.base_ring()
@@ -1034,8 +1049,7 @@ class EllipticProductPoint(AdditiveGroupElement):
         Weil pairings::
             
             sage: # needs sage.rings.finite_rings
-            sage: P.weil_pairing(Q, 7) == P0.weil_pairing(Q0, 7) * \
-            ....:                         P1.weil_pairing(Q1, 7)
+            sage: P.weil_pairing(Q, 7) == P0.weil_pairing(Q0, 7) * P1.weil_pairing(Q1, 7)
             True
             sage: A(P0, P1).weil_pairing(A(P0, Q1), 7) == P1.weil_pairing(Q1, 7)
             True
@@ -1069,7 +1083,3 @@ class EllipticProductPoint(AdditiveGroupElement):
         from sage.misc.misc_c import prod
         return prod(P.weil_pairing(Q, order, algorithm=algorithm)
                     for P, Q in zip(self._components, other._components))
-
-
-
-    
