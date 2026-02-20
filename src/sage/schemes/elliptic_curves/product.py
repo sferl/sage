@@ -507,7 +507,7 @@ class EllipticProduct(Parent, UniqueRepresentation):
             sage: Es = [choice(EllipticCurve(j=F.random_element()).twists()) for _ in range(n)]
             sage: EE = EllipticProduct(*Es)
             sage: A = EE.abelian_group()
-            sage: A == AdditiveAbelianGroupWrapper.from_generators(EE.gens())  # known bug -- #41677
+            sage: A == AdditiveAbelianGroupWrapper.from_generators(EE.gens())  # known bug -- #41667
             True
 
         ALGORITHM:
