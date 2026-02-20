@@ -128,12 +128,12 @@ class EllipticProduct(Parent, UniqueRepresentation):
         ...
         TypeError: all of the given components should be defined over the same base ring
     """
-    @classmethod
+    @staticmethod
     def __classcall__(cls, *curves):
         r"""
         Construct a product of elliptic curves from its factors.
 
-        Method used for compatibility with UniqueRepresentation.
+        Method used for compatibility with :class:`UniqueRepresentation`.
 
         INPUT:
 
