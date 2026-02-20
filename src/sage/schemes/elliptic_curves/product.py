@@ -52,8 +52,6 @@ AUTHORS:
 #    and the arithmetic methods :meth:`_add_`, :meth:`_sub_`, :meth:`_neg_`, handling of the zero element are automatically inherited
 #  - realize EllipticProduct as a subscheme of ProductProjectiveSpace
 #    (EllipticCurve does so with ProjectiveSpace, supports methods on the algebraic scheme (/variety) side
-# TODO implement cardinalities
-# TODO implement abelian_group()
 
 import sage.all
 from sage.structure.element import AdditiveGroupElement
@@ -418,7 +416,62 @@ class EllipticProduct(Parent, UniqueRepresentation):
         """
         return tuple(curve.j_invariant() for curve in self._factors)
 
-    # NOTE I removed lift_x. Too much effort to match the existing elliptic curve interface, not strictly needed
+    def cardinality(self):
+        r"""
+        Return the cardinality of the group of (rational) points on
+        this product of elliptic curves.
+
+        EXAMPLES::
+
+            sage: E1 = EllipticCurve(GF(101), [1,1]); E1.cardinality()
+            105
+            sage: E2 = EllipticCurve(GF(101), [2,2]); E2.cardinality()
+            102
+            sage: E1E2 = EllipticProduct(E1, E2); E1E2.cardinality()
+            10710
+        """
+        from sage.misc.misc_c import prod
+        return prod(E.cardinality() for E in self._factors)
+
+    order = cardinality
+
+    def gens(self):
+        r"""
+        Return a list of points generating the group of (rational)
+        points on this product of elliptic curves.
+
+        EXAMPLES::
+
+            sage: E0 = EllipticCurve(GF(67^2), [5, 0])
+            sage: E1 = EllipticCurve(GF(67^2), [14, 33])
+            sage: E0E1 = EllipticProduct(E0, E1)
+            sage: E0E1.cardinality()
+            21307392
+            sage: Gs = E0E1.gens(); Gs  # random
+            [((63*z2 + 56 : 49*z2 + 19 : 1), (0 : 1 : 0)),
+             ((23*z2 + 25 : 53*z2 + 51 : 1), (0 : 1 : 0)),
+             ((0 : 1 : 0), (42*z2 + 24 : 3*z2 + 57 : 1)),
+             ((0 : 1 : 0), (40*z2 + 44 : 58*z2 + 63 : 1))]
+            sage: A = AdditiveAbelianGroupWrapper.from_generators(Gs); A
+            Additive abelian group isomorphic to Z/9792 + Z/136 + Z/4 + Z/4
+              embedded in Product of 2 elliptic curves:
+                Elliptic Curve defined by y^2 = x^3 + 5*x over Finite Field in z2 of size 67^2
+                Elliptic Curve defined by y^2 = x^3 + 14*x + 33 over Finite Field in z2 of size 67^2
+            sage: A.cardinality()
+            21307392
+
+        ALGORITHM:
+
+        Thin wrapper around
+        :meth:`sage.schemes.elliptic_curves.ell_field.EllipticCurve_field.gens`.
+        """
+        gens = []
+        for i, E in enumerate(self._factors):
+            for g in E.gens():
+                G = self(*(g if j == i else 0 for j in range(len(self._factors))))
+                gens.append(G)
+        return tuple(gens)
+
 
 class EllipticProductPoint(AdditiveGroupElement):
     r"""
