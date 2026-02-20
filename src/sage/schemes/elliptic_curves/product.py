@@ -12,7 +12,7 @@ represent points on them, which are of the form
 
 EXAMPLES::
 
-    sage: Fp2, i = GF(419**2, name='i', modulus=var('x')**2 + 1).objgen()
+    sage: Fp2.<i> = GF(419^2, modulus=[1,0,1])
     sage: E0, E1 = EllipticCurve(Fp2, [1,0]), EllipticCurve(Fp2, [3,4])
     sage: E0E1 = EllipticProduct(E0, E1); E0E1
     Product of elliptic curves: (Elliptic Curve defined by y^2 = x^3 + x over Finite Field in i of size 419^2, Elliptic Curve defined by y^2 = x^3 + 3*x + 4 over Finite Field in i of size 419^2)
@@ -145,7 +145,7 @@ class EllipticProduct(Parent, UniqueRepresentation):
         We check that calling the constructor with bad arguments
         results in an error::
 
-            sage: Fp2 = GF(419**2, name='i', modulus=var('x')**2 + 1)
+            sage: Fp2.<i> = GF(419^2, modulus=[1,0,1])
             sage: E0 = EllipticCurve(Fp2, [1,0])
             sage: E1 = E0.isogenies_prime_degree(2)[0].codomain()
             sage: A = EllipticProduct(E0, E1)
@@ -289,7 +289,7 @@ class EllipticProduct(Parent, UniqueRepresentation):
 
         EXAMPLES::
 
-            sage: Fp2 = GF(419**2, name='i', modulus=var('x')**2 + 1)
+            sage: Fp2.<i> = GF(419^2, modulus=[1,0,1])
             sage: E0 = EllipticCurve(Fp2, [1,0])
             sage: E1 = E0.isogenies_prime_degree(2)[0].codomain()
             sage: A = EllipticProduct(E0, E1)
@@ -379,7 +379,7 @@ class EllipticProduct(Parent, UniqueRepresentation):
         EXAMPLES::
 
             sage: p = random_prime(1000)
-            sage: F = GF(p**2, name="a")
+            sage: F = GF(p^2)
             sage: curves = [EllipticCurve(j=F.random_element())
             ....:   for _ in range(5)]
             sage: PP = EllipticProduct(curves).random_element()
@@ -396,7 +396,7 @@ class EllipticProduct(Parent, UniqueRepresentation):
 
         EXAMPLES::
 
-            sage: p = 419; F = GF(p**2, name="a")
+            sage: F = GF(419^2)
             sage: E0 = EllipticCurve(F, j=0)
             sage: E1 = EllipticCurve(F, [1,0])
             sage: EllipticProduct(E0, E1).j_invariants() == (0, 1728)
@@ -777,7 +777,7 @@ class EllipticProductPoint(AdditiveGroupElement):
 
         An example over finite fields::
 
-            sage: Fp2 = GF(419**2, name='i', modulus=var('x')**2 + 1)
+            sage: Fp2.<i> = GF(419^2, modulus=[1,0,1])
             sage: E0 = EllipticCurve(j=Fp2(1728))
             sage: E1 = choice(E0.isogenies_prime_degree(2)).codomain()
             sage: A = EllipticProduct(E0, E1)
