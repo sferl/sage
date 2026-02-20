@@ -813,7 +813,7 @@ class EllipticProductPoint(AdditiveGroupElement):
 
         .. NOTE::
 
-            :meth:`additive_order` is a synonym for :meth:`order`
+            :meth:`additive_order` is a synonym for :meth:`order`.
 
         EXAMPLES:
 
