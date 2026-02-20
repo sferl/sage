@@ -641,6 +641,27 @@ class EllipticProductPoint(AdditiveGroupElement):
         """
         return any(self)
 
+    def __hash__(self):
+        r"""
+        Hash this point by hashing its parent and components.
+
+        EXAMPLES::
+
+            sage: E1 = EllipticCurve(GF(101), [1,1])
+            sage: E2 = EllipticCurve(GF(101), [2,2])
+            sage: E1E2 = EllipticProduct(E1, E2)
+            sage: E2E1 = EllipticProduct(E2, E1)
+            sage: hash(E1E2(0))  # random
+            -6965351267058650746
+            sage: hash(E2E1(0))  # random
+            -181082844366518951
+            sage: hash(E1E2.random_point())  # random
+            3302588370157585610
+            sage: hash(E2E1.random_point())  # random
+            -8225307281180202075
+        """
+        return hash((self.parent(),) + self._components)
+
     def base_ring(self):
         r"""
         Return the base ring of ``self``.
