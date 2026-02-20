@@ -15,7 +15,9 @@ EXAMPLES::
     sage: Fp2.<i> = GF(419^2, modulus=[1,0,1])
     sage: E0, E1 = EllipticCurve(Fp2, [1,0]), EllipticCurve(Fp2, [3,4])
     sage: E0E1 = EllipticProduct(E0, E1); E0E1
-    Product of elliptic curves: (Elliptic Curve defined by y^2 = x^3 + x over Finite Field in i of size 419^2, Elliptic Curve defined by y^2 = x^3 + 3*x + 4 over Finite Field in i of size 419^2)
+    Product of 2 elliptic curves:
+      Elliptic Curve defined by y^2 = x^3 + x over Finite Field in i of size 419^2
+      Elliptic Curve defined by y^2 = x^3 + 3*x + 4 over Finite Field in i of size 419^2
     sage: P0, P1 = E0.lift_x(-1), E1([5, 12])
     sage: P0P1 = E0E1(P0, P1)
     sage: all(P in E for P, E in zip(P0P1, E0E1.factors()))
@@ -179,7 +181,9 @@ class EllipticProduct(Parent, UniqueRepresentation):
             sage: E0 = EllipticCurve(ZZ, [1,0])
             sage: E1 = EllipticCurve(ZZ, [2,3])
             sage: A = EllipticProduct(E0, E1); A
-            Product of elliptic curves: (Elliptic Curve defined by y^2 = x^3 + x over Integer Ring, Elliptic Curve defined by y^2 = x^3 + 2*x + 3 over Integer Ring)
+            Product of 2 elliptic curves:
+              Elliptic Curve defined by y^2 = x^3 + x over Integer Ring
+              Elliptic Curve defined by y^2 = x^3 + 2*x + 3 over Integer Ring
         """
         super().__init__(self)
 
@@ -281,9 +285,12 @@ class EllipticProduct(Parent, UniqueRepresentation):
             sage: p = 419
             sage: E = EllipticCurve(GF(p), [1,0])
             sage: A = EllipticProduct(E, E); A
-            Product of elliptic curves: (Elliptic Curve defined by y^2 = x^3 + x over Finite Field of size 419, Elliptic Curve defined by y^2 = x^3 + x over Finite Field of size 419)
+            Product of 2 elliptic curves:
+              Elliptic Curve defined by y^2 = x^3 + x over Finite Field of size 419
+              Elliptic Curve defined by y^2 = x^3 + x over Finite Field of size 419
         """
-        return "Product of elliptic curves: " + str(self._factors)
+        return f'Product of {len(self._factors)} elliptic curves:' + \
+                ''.join(f'\n  {E}' for E in self._factors)
         
     def __richcmp__(self, other, op):
         r"""
