@@ -472,6 +472,65 @@ class EllipticProduct(Parent, UniqueRepresentation):
                 gens.append(G)
         return gens
 
+    # not cached here since each curve's individual .abelian_group() is already cached
+    def abelian_group(self):
+        r"""
+        Return the abelian-group structure of the group of (rational) points
+        on this product of elliptic curves.
+
+        .. NOTE::
+
+            The implementation does *not* ensure that the constructed abelian group
+            is represented as a product of its invariant factors.
+
+        This method is currently only implemented over finite fields.
+
+        EXAMPLES::
+
+            sage: E0 = EllipticCurve(GF(67^2), [5, 0])
+            sage: E1 = EllipticCurve(GF(67^2), [14, 33])
+            sage: E0E1 = EllipticProduct(E0, E1)
+            sage: A = E0E1.abelian_group(); A
+            Additive abelian group isomorphic to Z/68 + Z/68 + Z/576 + Z/8 embedded in Product of 2 elliptic curves:
+              Elliptic Curve defined by y^2 = x^3 + 5*x over Finite Field in z2 of size 67^2
+              Elliptic Curve defined by y^2 = x^3 + 14*x + 33 over Finite Field in z2 of size 67^2
+
+        TESTS:
+
+        Randomized test that this method returns the same result as
+        :meth:`gens` followed by :meth:`AdditiveAbelianGroupWrapper.from_generators`::
+
+            sage: p = random_prime(50)
+            sage: e = randrange(1, 3)
+            sage: F.<a> = GF((p, e))
+            sage: n = randrange(2, 5)
+            sage: Es = [choice(EllipticCurve(j=F.random_element()).twists()) for _ in range(n)]
+            sage: EE = EllipticProduct(*Es)
+            sage: A = EE.abelian_group()
+            sage: A == AdditiveAbelianGroupWrapper.from_generators(EE.gens())  # known bug -- #41677
+            True
+
+        ALGORITHM:
+
+        Thin wrapper around
+        :meth:`sage.schemes.elliptic_curves.ell_finite_field.EllipticCurve_finite_field.abelian_group`.
+        """
+        from sage.categories.finite_fields import FiniteFields
+        if not self.base_ring() in FiniteFields():
+            raise NotImplementedError('computing the abelian-group structure is only implemented over finite fields')
+
+        gens = []
+        for i, E in enumerate(self._factors):
+            A = E.abelian_group()
+            for g in A.gens():
+                G = self(*(g.element() if j == i else 0 for j in range(len(self._factors))))
+                gens.append(G)
+
+        ords = [G.order() for G in gens]  # .order() is cached in EllipticCurvePoint
+
+        from sage.groups.additive_abelian.additive_abelian_wrapper import AdditiveAbelianGroupWrapper
+        return AdditiveAbelianGroupWrapper(self, gens, ords)
+
 
 class EllipticProductPoint(AdditiveGroupElement):
     r"""

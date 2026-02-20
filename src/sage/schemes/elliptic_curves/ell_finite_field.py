@@ -1001,8 +1001,8 @@ class EllipticCurve_finite_field(EllipticCurve_field, ProjectivePlaneCurve_finit
     @cached_method
     def abelian_group(self):
         r"""
-        Return the abelian group structure of the group of points on this
-        elliptic curve.
+        Return the abelian-group structure of the group of points on this
+        product of elliptic curves.
 
         .. SEEALSO::
 
