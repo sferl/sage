@@ -1,13 +1,13 @@
 r"""
-Products of elliptic curves over a general ring
+Products of elliptic curves
 
-Given `n` elliptic curves `E_1, \dots, E_n` over `R`,
+Given `n` elliptic curves `E_1, \dots, E_n` over a ring `R`,
 their product `E_1 \times \dots \times E_n` is a principally polarized
-abelian variety of dimension `n`. TODO better docstring?
+abelian variety of dimension `n`.
 
 This module defines a parent class :class:`EllipticProduct` to provide support
 for such products, and an element class :class:`EllipticProductPoint` to
-represent points on these products, of the form
+represent points on them, which are of the form
 `(P_1, \dots, P_n) \in E_1 \times \dots \times E_n`.
 
 EXAMPLES::
@@ -37,7 +37,6 @@ AUTHORS:
 # TODO:
 # - nicer error messages?
 # - setup all the #needs
-# - is the docstring style ok?
 # - instead of making EllipticProduct a globally available name, we could add a .product() method in EllipticCurves ???
 #   and only allow syntax like E.product(E').
 #   This way, this way of building arbitrary products: curves=..., EllipticProduct(curves)   wouldn't be allowed
