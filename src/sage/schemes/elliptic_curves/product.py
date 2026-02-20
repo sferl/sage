@@ -224,7 +224,7 @@ class EllipticProduct(Parent, UniqueRepresentation):
             sage: A = EllipticProduct([E0, E1]); A.factors()
             (Elliptic Curve defined by y^2 = x^3 + x over Finite Field of size 62207, Elliptic Curve defined by y^2 = x^3 + 1 over Finite Field of size 62207)
         """
-        return self._factors  # that's fine because self._curves is a tuple
+        return self._factors  # that's fine because self._factors is a tuple
     
     def __getitem__(self, n):
         r"""
