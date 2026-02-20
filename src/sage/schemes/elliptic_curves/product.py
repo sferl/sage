@@ -25,7 +25,7 @@ EXAMPLES::
 
 .. TODO::
 
-    Implement isogenies between products of elliptic curves:: 
+    Implement isogenies between products of elliptic curves::
 
         sage: P0, Q0 = E0.torsion_basis(4)
         sage: prod = EllipticProduct(E0, E0)
@@ -114,9 +114,9 @@ class EllipticProduct(Parent, UniqueRepresentation):
         sage: A = EllipticProduct(E0, E1, E1, E0)
 
     The arguments can also be passed as a single tuple or list::
-        
+
         sage: AA = EllipticProduct([E0, E1, E1, E0])
-    
+
     Initializing an elliptic curve product with the same curves
     results in the *same* Python object::
 
@@ -141,7 +141,7 @@ class EllipticProduct(Parent, UniqueRepresentation):
 
         - `curves`: either multiple arguments, or a single list/tuple,
         where each element is an elliptic curve.
-        
+
         TESTS:
 
         We check that calling the constructor with bad arguments
@@ -175,7 +175,7 @@ class EllipticProduct(Parent, UniqueRepresentation):
         INPUT:
 
         - ``curves``: a tuple of elliptic curves
-        
+
         EXAMPLES::
 
             sage: E0 = EllipticCurve(ZZ, [1,0])
@@ -216,7 +216,7 @@ class EllipticProduct(Parent, UniqueRepresentation):
             sage: PP = A(P, Q)
         """
         return EllipticProductPoint(self, *args, **kwds)
-    
+
     def factors(self):
         r"""
         Return the factors of this product of elliptic curves as a tuple.
@@ -231,7 +231,7 @@ class EllipticProduct(Parent, UniqueRepresentation):
              Elliptic Curve defined by y^2 = x^3 + 1 over Finite Field of size 62207)
         """
         return self._factors  # that's fine because self._factors is a tuple
-    
+
     def __getitem__(self, n):
         r"""
         Return the ``n``-th elliptic curve of this product.
@@ -279,7 +279,7 @@ class EllipticProduct(Parent, UniqueRepresentation):
     def _repr_(self):
         r"""
         Return a string representation of this product of elliptic curves.
-        
+
         EXAMPLES::
 
             sage: p = 419
@@ -291,11 +291,11 @@ class EllipticProduct(Parent, UniqueRepresentation):
         """
         return f'Product of {len(self._factors)} elliptic curves:' + \
                 ''.join(f'\n  {E}' for E in self._factors)
-        
+
     def __richcmp__(self, other, op):
         r"""
         Compare two elliptic curve products.
-        
+
         This is done by comparing the underlying tuples of factors.
 
         EXAMPLES::
@@ -338,7 +338,7 @@ class EllipticProduct(Parent, UniqueRepresentation):
             5
         """
         return len(self._factors)
-    
+
     def base_ring(self):
         r"""
         Return the base ring of ``self``.
@@ -357,7 +357,7 @@ class EllipticProduct(Parent, UniqueRepresentation):
             Finite Field of size 167
         """
         return self._base_ring
-    
+
     def base_field(self):
         r"""
         Return the base field of ``self``.
@@ -385,7 +385,7 @@ class EllipticProduct(Parent, UniqueRepresentation):
             return self._base_ring
         else:
             raise ValueError("elliptic curve product not defined over a field")
-        
+
     def random_element(self):
         r"""
         Return a random point on this elliptic curve product.
@@ -401,9 +401,9 @@ class EllipticProduct(Parent, UniqueRepresentation):
             ((333*a + 36 : 225*a + 629 : 1), (590*a + 387 : 712*a + 703 : 1))
         """
         return self(*(curve.random_element() for curve in self._factors))
-    
+
     random_point = random_element
-    
+
     def j_invariants(self):
         r"""
         Return the j-invariant of each factor of the product as a tuple.
@@ -414,10 +414,10 @@ class EllipticProduct(Parent, UniqueRepresentation):
             sage: E0 = EllipticCurve(F, j=0)
             sage: E1 = EllipticCurve(F, [1,0])
             sage: EllipticProduct(E0, E1).j_invariants() == (0, 1728)
-            True  
+            True
         """
         return tuple(curve.j_invariant() for curve in self._factors)
-    
+
     # NOTE I removed lift_x. Too much effort to match the existing elliptic curve interface, not strictly needed
 
 class EllipticProductPoint(AdditiveGroupElement):
@@ -471,7 +471,7 @@ class EllipticProductPoint(AdditiveGroupElement):
 
         - ``components``: either a list, or multiple arguments,
         where each element can be converted into a point on the corresponding
-        elliptic curve. The number of components should match the number of 
+        elliptic curve. The number of components should match the number of
         factors of the parent product. FIXME strange phrasing
 
         EXAMPLES::
@@ -507,7 +507,7 @@ class EllipticProductPoint(AdditiveGroupElement):
         components = _unpack(components)
         if len(components) != parent.dimension():
             raise TypeError("number of points does not match parent dimension")
-        
+
         self._components = tuple(curve(point) for curve, point in zip(parent._factors, components))
 
     def components(self):
@@ -524,13 +524,13 @@ class EllipticProductPoint(AdditiveGroupElement):
             ((0 : 1 : 0), (1 : 25309 : 1))
         """
         return self._components
-    
+
     def _repr_(self):
         r"""
         Return a string representation of this point.
 
         EXAMPLES::
-            
+
             sage: F = GF(62207)
             sage: E0 = EllipticCurve(j=F(1728))
             sage: E1 = EllipticCurve(j=F(0))
@@ -539,7 +539,7 @@ class EllipticProductPoint(AdditiveGroupElement):
             ((0 : 1 : 0), (1 : 25309 : 1))
         """
         return f"{self._components}"
-    
+
     def __getitem__(self, n):
         r"""
         Return the ``n``-th component of this point.
@@ -552,7 +552,7 @@ class EllipticProductPoint(AdditiveGroupElement):
         on the ``n``-th factor of the parent product.
 
         EXAMPLES::
-            
+
             sage: F = QuadraticField(607)
             sage: E0 = EllipticCurve(j=F(0))
             sage: A = EllipticProduct(E0, E0, E0)
@@ -562,7 +562,7 @@ class EllipticProductPoint(AdditiveGroupElement):
             True
         """
         return self._components[n]
-    
+
     def __iter__(self):
         r"""
         Return an iterator over the components of this point.
@@ -576,10 +576,10 @@ class EllipticProductPoint(AdditiveGroupElement):
             sage: Q = E0((-1,0,1))
             sage: PP = A([P, P, Q])
             sage: [R == P for R in PP]
-            [True, True, False]    
+            [True, True, False]
         """
         return iter(self._components)
-    
+
     def __len__(self):
         r"""
         Return the number of components of this point.
@@ -622,7 +622,7 @@ class EllipticProductPoint(AdditiveGroupElement):
             True
         """
         return richcmp(self._components, other._components, op)
-    
+
     def __bool__(self):
         r"""
         Implements the conversion of this point to boolean.
@@ -664,9 +664,9 @@ class EllipticProductPoint(AdditiveGroupElement):
             Finite Field of size 167
         """
         return self.parent().base_ring()
-    
+
     base_field = base_ring
-    
+
     def _add_(self, other):
         r"""
         Add ``self`` and ``other`` component-wise.
@@ -691,7 +691,7 @@ class EllipticProductPoint(AdditiveGroupElement):
             True
         """
         return self.parent()(*(P + Q for P, Q in zip(self._components, other._components)))
-    
+
     def _neg_(self):
         r"""
         Return the additive inverse of ``self``, negating it component-wise.
@@ -707,7 +707,7 @@ class EllipticProductPoint(AdditiveGroupElement):
             True
         """
         return self.parent()(*(-P for P in self))
-    
+
     def _sub_(self, other):
         r"""
         Subtract ``other`` from ``self`` component-wise.
@@ -726,7 +726,7 @@ class EllipticProductPoint(AdditiveGroupElement):
             True
         """
         return self.parent()(*(P - Q for P, Q in zip(self._components, other._components)))
-    
+
     def order(self):
         r"""
         Return the order of this point in the product additive group,
@@ -765,7 +765,7 @@ class EllipticProductPoint(AdditiveGroupElement):
             sage: E0 = EllipticCurve(QQ, [0, 0, 1, -1, 0])
             sage: E1 = EllipticCurve(QQ, [1, 2, 3, 4, 5])
             sage: A = EllipticProduct(E0, E1)
-            sage: P = A((0, 0, 1), E1(0))                    
+            sage: P = A((0, 0, 1), E1(0))
             sage: P[0].order()
             +Infinity
             sage: P.order()                                  # needs sage.rings.infinity
@@ -803,7 +803,7 @@ class EllipticProductPoint(AdditiveGroupElement):
             sage: E0 = EllipticCurve(j=Fp2(1728))
             sage: E1 = choice(E0.isogenies_prime_degree(2)).codomain()
             sage: A = EllipticProduct(E0, E1)
-            
+
             sage: from sage.schemes.elliptic_curves.ell_field import point_of_order
             sage: Q = A(point_of_order(E0, 3), point_of_order(E1, 5))
             sage: Q.order()
@@ -832,9 +832,9 @@ class EllipticProductPoint(AdditiveGroupElement):
         if not hasattr(self, "_order"):  # not yet known
             self._order = lcm(point.order() for point in self._components)
         return self._order
-    
+
     additive_order = order
-    
+
     def set_order(self, value=None, *, multiple=None, check=True):
         r"""
         Compute and cache the order of each component of this point,
@@ -1005,10 +1005,10 @@ class EllipticProductPoint(AdditiveGroupElement):
         if value is not None and check:
             if self.order() != value:  # now the orders of all components are cached so this is fast
                 raise ValueError(f"Value {value} illegal: {value} * {self._components} must be the identity")
-        
+
     def weil_pairing(self, other, order, algorithm=None):
         r"""
-        Compute the Weil pairing of this point `P = (P_1, \dots, P_m)` 
+        Compute the Weil pairing of this point `P = (P_1, \dots, P_m)`
         with another point `Q = (Q_1, \dots, Q_m)` on the same product.
 
         The Weil pairing on a product of elliptic curves is the product
@@ -1054,7 +1054,7 @@ class EllipticProductPoint(AdditiveGroupElement):
 
         The Weil pairing is indeed the product of the component-wise
         Weil pairings::
-            
+
             sage: # needs sage.rings.finite_rings
             sage: P.weil_pairing(Q, 7) == P0.weil_pairing(Q0, 7) * P1.weil_pairing(Q1, 7)
             True
