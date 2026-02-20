@@ -28,8 +28,8 @@ EXAMPLES::
     Implement isogenies between products of elliptic curves::
 
         sage: P0, Q0 = E0.torsion_basis(4)
-        sage: prod = EllipticProduct(E0, E0)
-        sage: prod.isogeny([prod(P0, P0), prod(Q0, Q0)])  # not implemented
+        sage: E0E0 = EllipticProduct(E0, E0)
+        sage: E0E0.isogeny([E0E0(P0, P0), E0E0(Q0, Q0)])  # not implemented
 
 AUTHORS:
 
