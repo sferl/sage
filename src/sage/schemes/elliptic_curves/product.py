@@ -470,7 +470,7 @@ class EllipticProduct(Parent, UniqueRepresentation):
             for g in E.gens():
                 G = self(*(g if j == i else 0 for j in range(len(self._factors))))
                 gens.append(G)
-        return tuple(gens)
+        return gens
 
 
 class EllipticProductPoint(AdditiveGroupElement):
