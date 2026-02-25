@@ -37,12 +37,9 @@ AUTHORS:
 """
 
 # TODO:
-# - nicer error messages?
-# - setup all the #needs
 # - instead of making EllipticProduct a globally available name, we could add a .product() method in EllipticCurves ???
 #   and only allow syntax like E.product(E').
 #   This way, this way of building arbitrary products: curves=..., EllipticProduct(curves)   wouldn't be allowed
-# - __init__ assumes that the curves were already unpacked in __classcall__. Leave __classcall__ generic with *args, **kwds and move unpacking to __init__?
 
 # for the future:
 # TODO integrate interface with category system: make EllipticProduct an abelian variety:
@@ -355,34 +352,6 @@ class EllipticProduct(Parent, UniqueRepresentation):
             Finite Field of size 167
         """
         return self._base_ring
-
-    def base_field(self):
-        r"""
-        Return the base field of ``self``.
-
-        This is the common base field where all the factors are defined.
-
-        EXAMPLES::
-
-            sage: p = 167
-            sage: F = GF(p)
-            sage: E = EllipticCurve(j=F(0))
-            sage: A = EllipticProduct(E, E, E); A.base_field()
-            Finite Field of size 167
-            sage: E1 = E.change_ring(Zmod(p))
-            sage: EllipticProduct(E1, E1, E1).base_field()
-            Ring of integers modulo 167
-            sage: E2 = EllipticCurve(ZZ, [1,0])
-            sage: EllipticProduct(E2, E2).base_field()
-            Traceback (most recent call last):
-            ...
-            ValueError: elliptic curve product not defined over a field
-        """
-        # TODO need it? should it be an alias of base_ring? should I check instead that the children are instances of EllipticCurve_field?
-        if self._base_ring.is_field():
-            return self._base_ring
-        else:
-            raise ValueError("elliptic curve product not defined over a field")
 
     def random_element(self):
         r"""
