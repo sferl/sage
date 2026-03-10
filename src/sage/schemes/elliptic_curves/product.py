@@ -14,7 +14,7 @@ EXAMPLES::
 
     sage: Fp2.<i> = GF(419^2, modulus=[1,0,1])
     sage: E0, E1 = EllipticCurve(Fp2, [1,0]), EllipticCurve(Fp2, [3,4])
-    sage: E0E1 = EllipticProduct(E0, E1); E0E1
+    sage: E0E1 = E0.product(E1); E0E1
     Product of 2 elliptic curves:
       Elliptic Curve defined by y^2 = x^3 + x over Finite Field in i of size 419^2
       Elliptic Curve defined by y^2 = x^3 + 3*x + 4 over Finite Field in i of size 419^2
@@ -28,18 +28,13 @@ EXAMPLES::
     Implement isogenies between products of elliptic curves::
 
         sage: P0, Q0 = E0.torsion_basis(4)
-        sage: E0E0 = EllipticProduct(E0, E0)
+        sage: E0E0 = E0.product(E0)
         sage: E0E0.isogeny([E0E0(P0, P0), E0E0(Q0, Q0)])  # not implemented
 
 AUTHORS:
 
 - Alessandro Sferlazza (2025): Initial version
 """
-
-# TODO:
-# - instead of making EllipticProduct a globally available name, we could add a .product() method in EllipticCurves ???
-#   and only allow syntax like E.product(E').
-#   This way, this way of building arbitrary products: curves=..., EllipticProduct(curves)   wouldn't be allowed
 
 # for the future:
 # TODO integrate interface with category system: make EllipticProduct an abelian variety:
@@ -106,11 +101,11 @@ class EllipticProduct(Parent, UniqueRepresentation):
 
         sage: E0 = EllipticCurve(ZZ, [1,0])
         sage: E1 = EllipticCurve(ZZ, [2,3])
-        sage: A = EllipticProduct(E0, E1, E1, E0)
+        sage: A = EllipticProduct(E0, E1, E1, E0)  # needs sage.schemes.elliptic_curves.product
 
     The arguments can also be passed as a single tuple or list::
 
-        sage: AA = EllipticProduct([E0, E1, E1, E0])
+        sage: AA = EllipticProduct([E0, E1, E1, E0])  # needs sage.schemes.elliptic_curves.product
 
     Initializing an elliptic curve product with the same curves
     results in the *same* Python object::
@@ -120,7 +115,7 @@ class EllipticProduct(Parent, UniqueRepresentation):
 
     The base ring of all the factors should be the same::
 
-        sage: EllipticProduct(E0, EllipticCurve(GF(3), [1,0]))
+        sage: EllipticProduct(E0, EllipticCurve(GF(3), [1,0]))  # needs sage.schemes.elliptic_curves.product
         Traceback (most recent call last):
         ...
         TypeError: all of the given components should be defined over the same base ring
@@ -142,6 +137,7 @@ class EllipticProduct(Parent, UniqueRepresentation):
         We check that calling the constructor with bad arguments
         results in an error::
 
+            sage: # needs sage.schemes.elliptic_curves.product
             sage: Fp2.<i> = GF(419^2, modulus=[1,0,1])
             sage: E0 = EllipticCurve(Fp2, [1,0])
             sage: E1 = E0.isogenies_prime_degree(2)[0].codomain()
@@ -149,12 +145,12 @@ class EllipticProduct(Parent, UniqueRepresentation):
             sage: A == EllipticProduct([EllipticCurve(E0.a_invariants()),
             ....:                       E1.identity_morphism().codomain()])
             True
-
+            sage:
             sage: EllipticProduct()
             Traceback (most recent call last):
             ...
             ValueError: there must be at least 2 factors
-
+            sage:
             sage: P = E0.random_point()
             sage: EllipticProduct(E0, P)
             Traceback (most recent call last):
@@ -175,7 +171,7 @@ class EllipticProduct(Parent, UniqueRepresentation):
 
             sage: E0 = EllipticCurve(ZZ, [1,0])
             sage: E1 = EllipticCurve(ZZ, [2,3])
-            sage: A = EllipticProduct(E0, E1); A
+            sage: A = E0.product(E1); A
             Product of 2 elliptic curves:
               Elliptic Curve defined by y^2 = x^3 + x over Integer Ring
               Elliptic Curve defined by y^2 = x^3 + 2*x + 3 over Integer Ring
@@ -205,7 +201,7 @@ class EllipticProduct(Parent, UniqueRepresentation):
 
             sage: F = GF(62207)
             sage: E0 = EllipticCurve(j=F(1728))
-            sage: A = EllipticProduct(E0, E0)
+            sage: A = E0.product(E0)
             sage: P = E0.random_point()
             sage: Q = 2 * P
             sage: PP = A(P, Q)
@@ -221,7 +217,7 @@ class EllipticProduct(Parent, UniqueRepresentation):
             sage: F = GF(62207)
             sage: E0 = EllipticCurve(j=F(1728))
             sage: E1 = EllipticCurve(j=F(0))
-            sage: A = EllipticProduct([E0, E1]); A.factors()
+            sage: A = E0.product([E1]); A.factors()
             (Elliptic Curve defined by y^2 = x^3 + x over Finite Field of size 62207,
              Elliptic Curve defined by y^2 = x^3 + 1 over Finite Field of size 62207)
         """
@@ -241,7 +237,7 @@ class EllipticProduct(Parent, UniqueRepresentation):
             sage: F = QuadraticField(-p)
             sage: E0 = EllipticCurve(j=F(0))
             sage: E1 = EllipticCurve(j=F(1))
-            sage: A = EllipticProduct(E0, E0, E0, E1, E0)
+            sage: A = E0.product(E0, E0, E1, E0)
             sage: A[3].j_invariant()
             1
 
@@ -261,8 +257,8 @@ class EllipticProduct(Parent, UniqueRepresentation):
 
             sage: p = random_prime(2, 1000)
             sage: F = GF(p)
-            sage: A = EllipticProduct(
-            ....:         EllipticCurve(j=F(0)),
+            sage: E0 = EllipticCurve(j=F(0))
+            sage: A = E0.product(
             ....:         EllipticCurve(j=F(1)),
             ....:         EllipticCurve(j=F.random_element())
             ....:     )
@@ -279,7 +275,7 @@ class EllipticProduct(Parent, UniqueRepresentation):
 
             sage: p = 419
             sage: E = EllipticCurve(GF(p), [1,0])
-            sage: A = EllipticProduct(E, E); A
+            sage: A = E.product(E); A
             Product of 2 elliptic curves:
               Elliptic Curve defined by y^2 = x^3 + x over Finite Field of size 419
               Elliptic Curve defined by y^2 = x^3 + x over Finite Field of size 419
@@ -295,12 +291,12 @@ class EllipticProduct(Parent, UniqueRepresentation):
 
         EXAMPLES::
 
+            sage: # needs sage.schemes.elliptic_curves.product
             sage: Fp2.<i> = GF(419^2, modulus=[1,0,1])
             sage: E0 = EllipticCurve(Fp2, [1,0])
             sage: E1 = E0.isogenies_prime_degree(2)[0].codomain()
-            sage: A = EllipticProduct(E0, E1)
-            sage: A == EllipticProduct([EllipticCurve(j=E0.j_invariant()),
-            ....:                       E1.identity_morphism().codomain()])
+            sage: A = E0.product(E1)
+            sage: A == EllipticCurve(j=E0.j_invariant()).product([E1.identity_morphism().codomain()])
             True
             sage: A is EllipticProduct([EllipticCurve(j=E0.j_invariant()),
             ....:                       E1.identity_morphism().codomain()])
@@ -327,9 +323,9 @@ class EllipticProduct(Parent, UniqueRepresentation):
             sage: F = GF(p)
             sage: E0 = EllipticCurve(j=F(0))
             sage: E1 = EllipticCurve(j=F(1))
-            sage: A = EllipticProduct(E1, E1); A.dimension()
+            sage: A = E1.product(E1); A.dimension()
             2
-            sage: A = EllipticProduct([E0, E0, E0, E1, E0]); A.dimension()
+            sage: A = EllipticProduct([E0, E0, E0, E1, E0]); A.dimension()  # needs sage.schemes.elliptic_curves.product
             5
         """
         return len(self._factors)
@@ -345,10 +341,10 @@ class EllipticProduct(Parent, UniqueRepresentation):
             sage: p = 167
             sage: F = Qp(p, prec=20)
             sage: E = EllipticCurve(j=F(0))
-            sage: A = EllipticProduct(E, E, E); A.base_ring()
+            sage: A = E.product(E, E); A.base_ring()
             167-adic Field with capped relative precision 20
             sage: EE = E.change_ring(F.residue_field())
-            sage: EllipticProduct(EE, EE).base_ring()
+            sage: EE.product(EE, EE).base_ring()
             Finite Field of size 167
         """
         return self._base_ring
@@ -359,6 +355,7 @@ class EllipticProduct(Parent, UniqueRepresentation):
 
         EXAMPLES::
 
+            sage: # needs sage.schemes.elliptic_curves.product
             sage: p = random_prime(1000)
             sage: F = GF(p^2)
             sage: curves = [EllipticCurve(j=F.random_element())
@@ -380,7 +377,7 @@ class EllipticProduct(Parent, UniqueRepresentation):
             sage: F = GF(419^2)
             sage: E0 = EllipticCurve(F, j=0)
             sage: E1 = EllipticCurve(F, [1,0])
-            sage: EllipticProduct(E0, E1).j_invariants() == (0, 1728)
+            sage: (E0.product(E1)).j_invariants() == (0, 1728)
             True
         """
         return tuple(curve.j_invariant() for curve in self._factors)
@@ -396,7 +393,7 @@ class EllipticProduct(Parent, UniqueRepresentation):
             105
             sage: E2 = EllipticCurve(GF(101), [2,2]); E2.cardinality()
             102
-            sage: E1E2 = EllipticProduct(E1, E2); E1E2.cardinality()
+            sage: E1E2 = E1.product(E2); E1E2.cardinality()
             10710
         """
         from sage.misc.misc_c import prod
@@ -413,7 +410,7 @@ class EllipticProduct(Parent, UniqueRepresentation):
 
             sage: E0 = EllipticCurve(GF(67^2), [5, 0])
             sage: E1 = EllipticCurve(GF(67^2), [14, 33])
-            sage: E0E1 = EllipticProduct(E0, E1)
+            sage: E0E1 = E0.product(E1)
             sage: E0E1.cardinality()
             21307392
             sage: Gs = E0E1.gens(); Gs  # random
@@ -458,7 +455,7 @@ class EllipticProduct(Parent, UniqueRepresentation):
 
             sage: E0 = EllipticCurve(GF(67^2), [5, 0])
             sage: E1 = EllipticCurve(GF(67^2), [14, 33])
-            sage: E0E1 = EllipticProduct(E0, E1)
+            sage: E0E1 = E0.product(E1)
             sage: A = E0E1.abelian_group(); A
             Additive abelian group isomorphic to Z/68 + Z/68 + Z/576 + Z/8 embedded in Product of 2 elliptic curves:
               Elliptic Curve defined by y^2 = x^3 + 5*x over Finite Field in z2 of size 67^2
@@ -469,6 +466,7 @@ class EllipticProduct(Parent, UniqueRepresentation):
         Randomized test that this method returns the same result as
         :meth:`gens` followed by :meth:`AdditiveAbelianGroupWrapper.from_generators`::
 
+            sage: # needs sage.schemes.elliptic_curves.product
             sage: p = random_prime(50)
             sage: e = randrange(1, 3)
             sage: F.<a> = GF((p, e))
@@ -517,7 +515,7 @@ class EllipticProductPoint(AdditiveGroupElement):
 
             sage: F = GF(62207)
             sage: E0 = EllipticCurve(j=F(1728))
-            sage: A = EllipticProduct(E0, E0, E0)
+            sage: A = E0.product(E0, E0)
             sage: P = E0.random_point()
             sage: Q = 2 * P
             sage: PP = A(P, Q, E0(0))
@@ -553,13 +551,13 @@ class EllipticProductPoint(AdditiveGroupElement):
         - ``components``: either a list, or multiple arguments,
         where each element can be converted into a point on the corresponding
         elliptic curve. The number of components should match the number of
-        factors of the parent product. FIXME strange phrasing
+        factors of the parent product.
 
         EXAMPLES::
 
             sage: F = GF(62207)
             sage: E0 = EllipticCurve(j=F(1728))
-            sage: A = EllipticProduct(E0, E0, E0)
+            sage: A = E0.product(E0, E0)
             sage: P = E0.random_point()
             sage: Q = 2 * P
             sage: PP = A(P, [Q.x(), Q.y()], E0(0))
@@ -573,7 +571,7 @@ class EllipticProductPoint(AdditiveGroupElement):
             ...
             TypeError: number of points does not match parent dimension
 
-            sage: B = EllipticProduct(E0, E0)
+            sage: B = EllipticProduct(E0, E0)  # needs sage.schemes.elliptic_curves.product
             sage: B([P.x(), P.y()])
             Traceback (most recent call last):
             ...
@@ -600,7 +598,7 @@ class EllipticProductPoint(AdditiveGroupElement):
             sage: F = GF(62207)
             sage: E0 = EllipticCurve(j=F(1728))
             sage: E1 = EllipticCurve(j=F(0))
-            sage: A = EllipticProduct([E0, E1])
+            sage: A = E0.product(E1)
             sage: P = A(0, E1.lift_x(1)); P.components()
             ((0 : 1 : 0), (1 : 25309 : 1))
         """
@@ -615,7 +613,7 @@ class EllipticProductPoint(AdditiveGroupElement):
             sage: F = GF(62207)
             sage: E0 = EllipticCurve(j=F(1728))
             sage: E1 = EllipticCurve(j=F(0))
-            sage: A = EllipticProduct([E0, E1])
+            sage: A = E0.product(E1)
             sage: P = A(0, E1.lift_x(1)); P
             ((0 : 1 : 0), (1 : 25309 : 1))
         """
@@ -636,7 +634,7 @@ class EllipticProductPoint(AdditiveGroupElement):
 
             sage: F = QuadraticField(607)
             sage: E0 = EllipticCurve(j=F(0))
-            sage: A = EllipticProduct(E0, E0, E0)
+            sage: A = E0.product(E0, E0)
             sage: Q = E0((-1,0,1))  # Q is 2-torsion
             sage: PP = A(Q, Q, 0)
             sage: PP[0] == PP[1] and 2 * PP[1] == PP[2]
@@ -652,7 +650,7 @@ class EllipticProductPoint(AdditiveGroupElement):
 
             sage: F = QuadraticField(607)
             sage: E0 = EllipticCurve(j=F(0))
-            sage: A = EllipticProduct(E0, E0, E0)
+            sage: A = E0.product(E0, E0)
             sage: P = E0((2,3,1))
             sage: Q = E0((-1,0,1))
             sage: PP = A([P, P, Q])
@@ -669,7 +667,7 @@ class EllipticProductPoint(AdditiveGroupElement):
 
             sage: F = Zmod(75)
             sage: E = EllipticCurve(F, [42, 42])
-            sage: A = EllipticProduct(E, E, E)
+            sage: A = E.product(E, E)
             sage: P = E((4,7,1))
             sage: PP = A(P, 0, P)
             sage: len(PP)
@@ -677,6 +675,7 @@ class EllipticProductPoint(AdditiveGroupElement):
 
         TESTS::
 
+            sage: # needs sage.schemes.elliptic_curves.product
             sage: F = GF(random_prime(2000))
             sage: n = randint(2, 10)
             sage: curves = [EllipticCurve(j=F.random_element())
@@ -697,7 +696,7 @@ class EllipticProductPoint(AdditiveGroupElement):
 
             sage: F = Zmod(100)
             sage: E0 = EllipticCurve([42, 42])
-            sage: A = EllipticProduct(E0, E0, E0)
+            sage: A = E0.product(E0, E0)
             sage: PP = A(0,0,0)
             sage: PP == A(E0(0), (0,1,0), 0)
             True
@@ -715,7 +714,7 @@ class EllipticProductPoint(AdditiveGroupElement):
 
             sage: F = Zmod(75)
             sage: E = EllipticCurve(F, [42, 42])
-            sage: A = EllipticProduct(E, E)
+            sage: A = E.product(E)
             sage: P = E((4,7,1))
             sage: [bool(R) for R in (A(0, P), (A(0, 0)))]
             [True, False]
@@ -730,8 +729,8 @@ class EllipticProductPoint(AdditiveGroupElement):
 
             sage: E1 = EllipticCurve(GF(101), [1,1])
             sage: E2 = EllipticCurve(GF(101), [2,2])
-            sage: E1E2 = EllipticProduct(E1, E2)
-            sage: E2E1 = EllipticProduct(E2, E1)
+            sage: E1E2 = E1.product(E2)
+            sage: E2E1 = E2.product(E1)
             sage: hash(E1E2(0))  # random
             -6965351267058650746
             sage: hash(E2E1(0))  # random
@@ -755,13 +754,13 @@ class EllipticProductPoint(AdditiveGroupElement):
 
             sage: F = Qp(167, prec=20)
             sage: E = EllipticCurve(j=F(0))
-            sage: A = EllipticProduct(E, E, E);
+            sage: A = E.product(E, E)
             sage: P = E.lift_x(1)
             sage: PP = A(P, 0, P); PP.base_ring()
             167-adic Field with capped relative precision 20
 
             sage: E_res = E.change_ring(F.residue_field())
-            sage: A_res = EllipticProduct(E_res, E_res, E_res)
+            sage: A_res = E_res.product(E_res, E_res)
             sage: PP_res = A_res(PP.components()); PP_res.base_ring()
             Finite Field of size 167
         """
@@ -781,7 +780,7 @@ class EllipticProductPoint(AdditiveGroupElement):
             sage: N = 1113121  # 101 * 103 * 107
             sage: E0 = EllipticCurve(Zmod(N), [1, 0])
             sage: E1 = EllipticCurve(Zmod(N), [0, 1])
-            sage: A = EllipticProduct(E0, E1)
+            sage: A = E0.product(E1)
             sage: R = A(E0(301098, 673883, 644675), E1(103, 124732, 1))
             sage: T = A(E0(411415, 758555, 255837), E1(4, 6, 2))
             sage: Q = R + T; Q
@@ -801,7 +800,7 @@ class EllipticProductPoint(AdditiveGroupElement):
         EXAMPLES::
 
             sage: E = EllipticCurve('389a')
-            sage: A = EllipticProduct(E, E)
+            sage: A = E.product(E)
             sage: P = A((-1,-2), (-1,1))
             sage: Q = -P; Q.components()
             ((-1 : 1 : 1), (-1 : -2 : 1))
@@ -818,7 +817,7 @@ class EllipticProductPoint(AdditiveGroupElement):
 
             sage: E0 = EllipticCurve('389a')
             sage: E1 = EllipticCurve('492b')
-            sage: A = EllipticProduct(E0, E1)
+            sage: A = E0.product(E1)
             sage: P = A((-1,1), (2, -27))
             sage: Q = A((0, 0), (5, -30))
             sage: (P - Q).components()
@@ -850,7 +849,7 @@ class EllipticProductPoint(AdditiveGroupElement):
 
             sage: K.<t> = FractionField(PolynomialRing(QQ,'t'))
             sage: E = EllipticCurve([0, 0, 0, -t^2, 0])
-            sage: A = EllipticProduct(E, E)
+            sage: A = E.product(E)
             sage: P = A((t, 0), (-t, 0))
             sage: P.order()
             Traceback (most recent call last):
@@ -866,7 +865,7 @@ class EllipticProductPoint(AdditiveGroupElement):
 
             sage: E0 = EllipticCurve(QQ, [0, 0, 1, -1, 0])
             sage: E1 = EllipticCurve(QQ, [1, 2, 3, 4, 5])
-            sage: A = EllipticProduct(E0, E1)
+            sage: A = E0.product(E1)
             sage: P = A((0, 0, 1), E1(0))
             sage: P[0].order()
             +Infinity
@@ -876,7 +875,7 @@ class EllipticProductPoint(AdditiveGroupElement):
         ::
 
             sage: E = EllipticCurve([0,1])
-            sage: A = EllipticProduct(E, E)
+            sage: A = E.product(E)
             sage: P1 = E([-1, 0])
             sage: P2 = E([2, -3])
             sage: P1.order(), P2.order()
@@ -891,7 +890,7 @@ class EllipticProductPoint(AdditiveGroupElement):
             sage: K.<a> = NumberField(x^2 - x + 2)
             sage: E0 = EllipticCurve([1, a-1, a+1, -2*a-2, -5*a+7])
             sage: E1 = EllipticCurve([3*a + 4, 6*a - 8])
-            sage: A = EllipticProduct(E0, E0, E1)
+            sage: A = E0.product(E0, E1)
             sage: P0 = E0.lift_x(a - 3)
             sage: P1 = E1.lift_x(-a)
             sage: P0.order(), P1.order()
@@ -904,7 +903,7 @@ class EllipticProductPoint(AdditiveGroupElement):
             sage: Fp2.<i> = GF(419^2, modulus=[1,0,1])
             sage: E0 = EllipticCurve(j=Fp2(1728))
             sage: E1 = choice(E0.isogenies_prime_degree(2)).codomain()
-            sage: A = EllipticProduct(E0, E1)
+            sage: A = E0.product(E1)
 
             sage: from sage.schemes.elliptic_curves.ell_field import point_of_order
             sage: Q = A(point_of_order(E0, 3), point_of_order(E1, 5))
@@ -920,7 +919,7 @@ class EllipticProductPoint(AdditiveGroupElement):
         Check that the order actually gets cached (:issue:`32786`)::
 
             sage: E = EllipticCurve(GF(31337), [42, 1])
-            sage: A = EllipticProduct(E, E, E, E)
+            sage: A = E.product(E, E, E)
             sage: P = E.lift_x(1)
             sage: PP = A(P, P, 0, P)
             sage: hasattr(PP, '_order')
@@ -962,7 +961,7 @@ class EllipticProductPoint(AdditiveGroupElement):
 
             sage: # needs sage.rings.finite_rings
             sage: E = EllipticCurve(GF(7), [0, 1])  # This curve has order 12
-            sage: A = EllipticProduct(E, E, E)
+            sage: A = E.product([E, E])
             sage: G0, G1, G2 = E(5, 0), E(1, 3), E(0, 1)
             sage: [R.order() for R in (G0, G1, G2)]
             [2, 6, 3]
@@ -993,7 +992,7 @@ class EllipticProductPoint(AdditiveGroupElement):
             sage: B = 1093849038073734274511112390766805569936207598951683748994586394495953116150735016013708737573759623248592132296706313309438452531591012912142327488478985984
             sage: q = 6864797660130609714981900799081393217269435300143305409394463459185543183397655394245057746333217197532963996371363321113864768612440380340372808892707005449
             sage: E = EllipticCurve([F(A), F(B)])  # NIST-P521 curve
-            sage: Prod = EllipticProduct(E, E)
+            sage: Prod = E.product(E)
             sage: G = Prod.random_point()
             sage: G.set_order(q)
             sage: (G.order() * G).components()  # This takes practically no time.
@@ -1007,7 +1006,7 @@ class EllipticProductPoint(AdditiveGroupElement):
 
             sage: F.<a> = GF((10007, 23))
             sage: E = EllipticCurve(F, [9,9])
-            sage: A = EllipticProduct(E, E, E)
+            sage: A = E.product([E, E])
             sage: n = E.order()
             sage: m = 5 * 47 * 139 * 1427 * 2027 * 4831 * 275449 * 29523031
             sage: assert m.divides(n)
@@ -1036,7 +1035,7 @@ class EllipticProductPoint(AdditiveGroupElement):
             sage: F = GF(7)
             sage: curves = [EllipticCurve(j=F.random_element())
             ....:           for _ in range(4)]
-            sage: A = EllipticProduct(curves)
+            sage: A = EllipticProduct(curves)  # needs sage.schemes.elliptic_curves.product
             sage: G = A.random_point()
             sage: G.set_order(0)
             Traceback (most recent call last):
@@ -1047,7 +1046,7 @@ class EllipticProductPoint(AdditiveGroupElement):
         order of this point::
 
             sage: E = EllipticCurve(GF(7), [0, 1])  # This curve has order 12
-            sage: A = EllipticProduct(E, E, E)
+            sage: A = E.product([E, E])
             sage: G = A.random_point()
             sage: G.set_order(11)
             Traceback (most recent call last):
@@ -1058,7 +1057,7 @@ class EllipticProductPoint(AdditiveGroupElement):
         throws no error::
 
             sage: E = EllipticCurve(GF(7), [0, 1])  # This curve has order 12
-            sage: A = EllipticProduct(E, E, E)
+            sage: A = E.product([E, E])
             sage: G = A.random_point()
             sage: G.set_order(11, check=False)  # no complaints
             sage: G.order()
@@ -1069,7 +1068,7 @@ class EllipticProductPoint(AdditiveGroupElement):
         Check that some invalid inputs are caught::
 
             sage: E = EllipticCurve(GF(101), [5,5])
-            sage: A = EllipticProduct(E, E)
+            sage: A = E.product(E)
             sage: P, Q = E.lift_x(11), E.lift_x(53)
             sage: assert 17 * P == 17 * Q == 0
             sage: PQ = A(P, Q)
@@ -1141,7 +1140,7 @@ class EllipticProductPoint(AdditiveGroupElement):
             sage: E0 = EllipticCurve(j=F(0)); E0.is_supersingular()
             True
             sage: E1 = next(E0.isogenies_degree(21)).codomain()
-            sage: A = EllipticProduct(E0, E1)
+            sage: A = E0.product(E1)
             sage: P0, Q0 = E0.torsion_basis(7)
             sage: P1, Q1 = E1.torsion_basis(7)
             sage: P, Q = A(P0, P1), A(Q0, Q1)
@@ -1166,7 +1165,7 @@ class EllipticProductPoint(AdditiveGroupElement):
             True
 
             sage: # needs sage.rings.finite_rings
-            sage: B = EllipticProduct(E0, E0)
+            sage: B = E0.product(E0)
             sage: B(P0, Q0).weil_pairing(B(Q0, P0), 7 * 37)
             1
 

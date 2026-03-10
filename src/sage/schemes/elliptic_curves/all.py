@@ -38,8 +38,6 @@ from sage.schemes.elliptic_curves.cm import (cm_orders,
 
 lazy_import('sage.schemes.elliptic_curves.ec_database', 'elliptic_curves')
 
-lazy_import('sage.schemes.elliptic_curves.product', 'EllipticProduct')
-
 from sage.schemes.elliptic_curves.kodaira_symbol import KodairaSymbol
 
 from sage.schemes.elliptic_curves.ell_curve_isogeny import EllipticCurveIsogeny, isogeny_codomain_from_kernel

@@ -1672,6 +1672,11 @@ class EllipticCurve_generic(WithEqualityById, plane_curve.ProjectivePlaneCurve):
             return WeierstrassIsomorphism(None, (u,r,s,t), self)
         return WeierstrassIsomorphism(self, (u,r,s,t))
 
+    def product(self, *others):
+        from sage.schemes.elliptic_curves.product import EllipticProduct, _unpack
+        curves = (self,) + _unpack(others)
+        return EllipticProduct(curves)
+
 # ###########################################################
 #
 # Explanation of the division (also known as torsion) polynomial
