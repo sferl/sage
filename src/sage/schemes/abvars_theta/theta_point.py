@@ -161,7 +161,7 @@ class ThetaPoint_level2(ThetaPoint):
         P = self.hadamard(self.square_coords(self.coordinates()))
         Q = self.hadamard(self.square_coords(Q.coordinates()))
         R = self.coordwise_multiply(P, Q)
-        R = self.coordwise_multiply(R, inv_U_sq)
+        R = self.hadamard(self.coordwise_multiply(R, inv_U_sq))
 
         PmQ = tuple(PmQ)
         if not PmQ_is_inverse:
