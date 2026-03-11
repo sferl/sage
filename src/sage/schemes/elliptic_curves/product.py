@@ -110,7 +110,7 @@ class EllipticProduct(Parent, UniqueRepresentation):
     Initializing an elliptic curve product with the same curves
     results in the *same* Python object::
 
-        sage: A is AA
+        sage: A is AA  # needs sage.schemes.elliptic_curves.product
         True
 
     The base ring of all the factors should be the same::
@@ -571,7 +571,8 @@ class EllipticProductPoint(AdditiveGroupElement):
             ...
             TypeError: number of points does not match parent dimension
 
-            sage: B = EllipticProduct(E0, E0)  # needs sage.schemes.elliptic_curves.product
+            sage: # needs sage.schemes.elliptic_curves.product
+            sage: B = EllipticProduct(E0, E0)
             sage: B([P.x(), P.y()])
             Traceback (most recent call last):
             ...
